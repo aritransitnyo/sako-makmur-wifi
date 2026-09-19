@@ -413,7 +413,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200 relative">
       {/* Ambient background glows */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-96 bg-gradient-to-b from-cyan-500/10 via-blue-600/5 to-transparent blur-3xl pointer-events-none -z-10" />
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-96 bg-gradient-to-t from-violet-600/5 via-cyan-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
@@ -426,12 +426,13 @@ export default function Home() {
         onOpenSqlModal={() => setShowSqlModal(true)}
         onOpenResetWizard={() => setShowResetWizardModal(true)}
         onOpenShareReport={() => setShowShareReportModal(true)}
+        onOpenMikrotikModal={() => setShowMikrotikModal(true)}
         onLockApp={handleLockApp}
         loading={loading}
       />
 
       {/* Main Body Container */}
-      <main className="flex-1 max-w-md w-full mx-auto px-4 pt-4 pb-8">
+      <main className="flex-1 max-w-md w-full mx-auto px-4 pt-4 pb-28">
         {activeTab === 'dashboard' && (
           <DashboardView
             settings={settings}
@@ -440,6 +441,7 @@ export default function Home() {
             capexItems={capexItems}
             onNavigateTab={(tab) => setActiveTab(tab)}
             onUpdateSettings={handleUpdateSettings}
+            onOpenNetworkModal={() => setShowMikrotikModal(true)}
           />
         )}
 

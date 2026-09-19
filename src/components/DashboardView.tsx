@@ -23,6 +23,7 @@ interface DashboardViewProps {
   capexItems: CapexItem[];
   onNavigateTab: (tab: any) => void;
   onUpdateSettings: (settings: BusinessSettings) => void;
+  onOpenNetworkModal?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -32,6 +33,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   capexItems,
   onNavigateTab,
   onUpdateSettings,
+  onOpenNetworkModal,
 }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [starlinkCost, setStarlinkCost] = useState(settings.starlink_cost);
@@ -85,11 +87,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="text-right flex-shrink-0">
-            <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">User Aktif</p>
-            <p className="text-base sm:text-lg font-black text-cyan-400">
-              {fin.activeCount} <span className="text-xs font-medium text-slate-400">/ {subscribers.length}</span>
-            </p>
+          <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
+            <div>
+              <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">User Aktif</p>
+              <p className="text-base sm:text-lg font-black text-cyan-400">
+                {fin.activeCount} <span className="text-xs font-medium text-slate-400">/ {subscribers.length}</span>
+              </p>
+            </div>
+            {onOpenNetworkModal && (
+              <button
+                onClick={onOpenNetworkModal}
+                className="mt-0.5 px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold flex items-center gap-1 transition-all active:scale-95 shadow"
+                title="Kelola Router MikroTik & OLT HiOSO"
+              >
+                <Server className="w-3 h-3" />
+                Router &amp; OLT ➜
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, Database, Sparkles, Share2, RefreshCw, Lock } from 'lucide-react';
+import { Wifi, Database, Sparkles, Share2, RefreshCw, Lock, Server } from 'lucide-react';
 
 interface HeaderProps {
   businessName: string;
@@ -8,6 +8,7 @@ interface HeaderProps {
   onOpenSqlModal: () => void;
   onOpenResetWizard: () => void;
   onOpenShareReport: () => void;
+  onOpenMikrotikModal: () => void;
   onLockApp: () => void;
   loading: boolean;
 }
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSqlModal,
   onOpenResetWizard,
   onOpenShareReport,
+  onOpenMikrotikModal,
   onLockApp,
   loading,
 }) => {
@@ -27,19 +29,19 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-md mx-auto flex items-center justify-between">
         {/* Brand logo & title */}
         <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/25">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/25 flex-shrink-0">
             <Wifi className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center space-x-1.5">
-              <h1 className="font-black text-sm text-slate-100 tracking-tight leading-none">
+              <h1 className="font-black text-sm text-slate-100 tracking-tight leading-none truncate">
                 {businessName || 'Sako Makmur WiFi'}
               </h1>
-              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex-shrink-0">
                 Live
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
+            <p className="text-[10px] text-slate-400 mt-0.5 font-medium truncate">
               Starlink PPPoE Manager
             </p>
           </div>
@@ -47,6 +49,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action icons */}
         <div className="flex items-center space-x-1">
+          {/* MikroTik & OLT Button */}
+          <button
+            onClick={onOpenMikrotikModal}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/30 transition-all text-xs font-bold shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+            title="Kelola Router MikroTik & OLT HiOSO EPON"
+          >
+            <Server className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[11px] font-bold">Router &amp; OLT</span>
+          </button>
           {/* Mulai dari Nol Setup */}
           <button
             onClick={onOpenResetWizard}

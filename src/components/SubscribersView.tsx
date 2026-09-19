@@ -19,6 +19,7 @@ import {
   Edit3,
   CreditCard,
   Banknote,
+  Server,
 } from 'lucide-react';
 import { Subscriber, PppoePackage } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -113,10 +114,11 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   };
 
   const filtered = subscribers.filter((sub) => {
+    const q = (search || '').toLowerCase();
     const matchSearch =
-      sub.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      sub.username_pppoe.toLowerCase().includes(search.toLowerCase()) ||
-      sub.address.toLowerCase().includes(search.toLowerCase());
+      (sub.full_name || '').toLowerCase().includes(q) ||
+      (sub.username_pppoe || '').toLowerCase().includes(q) ||
+      (sub.address || '').toLowerCase().includes(q);
 
     if (!matchSearch) return false;
 
@@ -221,11 +223,11 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenMikrotikModal}
-              className="p-2.5 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold"
-              title="Import / Export MikroTik"
+              className="p-2 sm:px-3 sm:py-2.5 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold"
+              title="Kelola Router MikroTik & OLT HiOSO"
             >
-              <Terminal className="w-4 h-4" />
-              <span className="hidden sm:inline">MikroTik</span>
+              <Server className="w-4 h-4" />
+              <span className="text-[11px]">Router &amp; OLT</span>
             </button>
             <button
               onClick={handleOpenAdd}

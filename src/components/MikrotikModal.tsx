@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Terminal,
   Copy,
@@ -14,13 +14,17 @@ import {
   Activity,
   RefreshCw,
   Power,
-  Zap,
   Clock,
   Cpu,
   ArrowDownCircle,
   ArrowUpCircle,
-  Shield,
   Loader2,
+  Server,
+  ExternalLink,
+  Shield,
+  Radio,
+  Layers,
+  KeyRound,
 } from 'lucide-react';
 import { Subscriber, PppoePackage } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -37,7 +41,6 @@ interface MikrotikModalProps {
   ) => void;
 }
 
-// Types for API responses
 interface ActiveSession {
   id: string;
   name: string;
@@ -78,10 +81,11 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
   packages,
   onImportSubscribers,
 }) => {
-  const [activeTab, setActiveTab] = useState<'monitor' | 'import' | 'export'>('monitor');
-  const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'monitor' | 'olt' | 'winbox' | 'scripts'>('monitor');
+  const [copied, setCopied] = useState<string | null>(null);
 
-  // Import states
+  // Script sub-tab (import vs export)
+  const [scriptSubTab, setScriptSubTab] = useState<'export' | 'import'>('export');
   const [inputText, setInputText] = useState('');
   const [parsedSubs, setParsedSubs] = useState<Subscriber[]>([]);
   const [parsedPackages, setParsedPackages] = useState<PppoePackage[]>([]);
@@ -103,7 +107,12 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
   const [trafficTx, setTrafficTx] = useState(0);
   const trafficTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  if (!isOpen) return null;
+  // Copy helper
+  const handleCopyText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   // ===== MONITOR FUNCTIONS =====
 
@@ -116,7 +125,6 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
       if (data.status === 'success' && data.success) {
         setIsConnected(true);
         setRouterVersion(data.version || '');
-        // Auto-load status after successful connection
         await fetchStatus();
       } else {
         setIsConnected(false);
@@ -156,11 +164,11 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
       const resp = await fetch('/api/mikrotik?action=traffic&interface=ether1-WAN');
       const data = await resp.json();
       if (data.status === 'success' && data.traffic) {
-        setTrafficRx(data.traffic.rxBitsPerSecond);
-        setTrafficTx(data.traffic.txBitsPerSecond);
+        setTrafficRx(data.traffic.rxBitsPerSecond || 0);
+        setTrafficTx(data.traffic.txBitsPerSecond || 0);
       }
     } catch {
-      // Silent fail for traffic polling
+      // silent
     }
   };
 
@@ -175,8 +183,7 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
       });
       const data = await resp.json();
       if (data.status === 'success') {
-        // Remove from local state immediately
-        setActiveSessions(prev => prev.filter(s => s.id !== session.id));
+        setActiveSessions((prev) => prev.filter((s) => s.id !== session.id));
       } else {
         setMonitorError(data.message || 'Gagal kick user');
       }
@@ -187,7 +194,6 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
     }
   };
 
-  // Start traffic polling when monitor tab is active
   useEffect(() => {
     if (activeTab === 'monitor' && isConnected) {
       fetchTraffic();
@@ -201,22 +207,19 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
     };
   }, [activeTab, isConnected]);
 
-  // Auto-test connection when monitor tab is first opened
   useEffect(() => {
-    if (activeTab === 'monitor' && isConnected === null) {
+    if (isOpen && activeTab === 'monitor' && isConnected === null) {
       testApiConnection();
     }
-  }, [activeTab]);
+  }, [isOpen, activeTab]);
 
-  // Helper: check if a subscriber username is online
   const isUserOnline = (username: string) =>
-    activeSessions.some(s => s.name === username);
+    activeSessions.some((s) => s.name === username);
 
   const getSession = (username: string) =>
-    activeSessions.find(s => s.name === username);
+    activeSessions.find((s) => s.name === username);
 
-  // ===== IMPORT PARSER (preserved from original) =====
-
+  // ===== IMPORT PARSER =====
   const handleParseMikrotik = () => {
     if (!inputText.trim()) return;
 
@@ -316,8 +319,7 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
     onClose();
   };
 
-  // ===== EXPORT SCRIPT GENERATOR (preserved from original) =====
-
+  // ===== EXPORT SCRIPT GENERATOR =====
   let script = `# ==========================================\n`;
   script += `# SAKO MAKMUR WIFI - MIKROTIK PPPoE SETUP\n`;
   script += `# Paste di New Terminal MikroTik (Winbox)\n`;
@@ -334,28 +336,29 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
     const pass = sub.pppoe_password || '123';
     const profile = sub.package_name || 'default';
     const disabled = sub.status === 'active' ? 'no' : 'yes';
-    script += `/ppp secret add name="${sub.username_pppoe}" password="${pass}" profile="${profile}" service=pppoe disabled=${disabled} comment="${sub.full_name} - ${sub.address}"\n`;
+    script += `/ppp secret add name="${sub.username_pppoe}" password="${pass}" profile="${profile}" service=pppoe disabled=${disabled} comment="${sub.full_name} - ${sub.address || 'Desa'}"\n`;
   });
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(script);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-lg space-y-4 page-transition max-h-[92vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 w-full max-w-lg space-y-3.5 page-transition max-h-[94vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <Terminal className="w-5 h-5 text-cyan-400" />
-            <h3 className="font-bold text-sm text-slate-100">
-              Integrasi MikroTik RouterOS
-            </h3>
+            <Server className="w-5 h-5 text-cyan-400" />
+            <div>
+              <h3 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
+                Perangkat Jaringan Core
+              </h3>
+              <p className="text-[10px] text-slate-400">
+                MikroTik RB750Gr3 &amp; HiOSO EPON OLT
+              </p>
+            </div>
             {isConnected && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/25">
-                API v{routerVersion}
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/25 ml-1">
+                ROS v{routerVersion}
               </span>
             )}
           </div>
@@ -367,61 +370,77 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
           </button>
         </div>
 
-        {/* Tab switcher: Monitor vs Impor vs Ekspor */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold">
+        {/* Tab switcher: 4 Main Tabs */}
+        <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-[11px] font-bold">
           <button
             onClick={() => setActiveTab('monitor')}
-            className={`py-2 rounded-lg flex items-center justify-center gap-1 transition-all ${
+            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
               activeTab === 'monitor'
-                ? 'bg-emerald-500 text-slate-950 shadow-md'
+                ? 'bg-emerald-500 text-slate-950 shadow-md font-black'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Activity className="w-3.5 h-3.5" />
-            Live Monitor
+            <span className="truncate">Live Monitor</span>
           </button>
+
           <button
-            onClick={() => setActiveTab('import')}
-            className={`py-2 rounded-lg flex items-center justify-center gap-1 transition-all ${
-              activeTab === 'import'
-                ? 'bg-cyan-500 text-slate-950 shadow-md'
+            onClick={() => setActiveTab('olt')}
+            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              activeTab === 'olt'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-black'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Upload className="w-3.5 h-3.5" />
-            Impor
+            <Radio className="w-3.5 h-3.5" />
+            <span className="truncate">OLT HiOSO</span>
           </button>
+
           <button
-            onClick={() => setActiveTab('export')}
-            className={`py-2 rounded-lg flex items-center justify-center gap-1 transition-all ${
-              activeTab === 'export'
-                ? 'bg-cyan-500 text-slate-950 shadow-md'
+            onClick={() => setActiveTab('winbox')}
+            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              activeTab === 'winbox'
+                ? 'bg-blue-500 text-white shadow-md font-black'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5" />
+            <span className="truncate">Winbox</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('scripts')}
+            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all ${
+              activeTab === 'scripts'
+                ? 'bg-purple-500 text-white shadow-md font-black'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Download className="w-3.5 h-3.5" />
-            Ekspor
+            <span className="truncate">Skrip PPPoE</span>
           </button>
         </div>
 
-        {/* ===== TAB: LIVE MONITOR ===== */}
+        {/* ===== TAB 1: LIVE MONITOR ===== */}
         {activeTab === 'monitor' && (
           <div className="space-y-3 flex-1 flex flex-col overflow-hidden text-xs">
             {/* Connection Status Banner */}
             {isConnected === null && (
-              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center gap-2 text-slate-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Menghubungkan ke MikroTik API...
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center gap-2 text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                Menghubungkan ke MikroTik RouterOS API...
               </div>
             )}
 
             {isConnected === false && (
-              <div className="p-3 rounded-2xl bg-rose-950/30 border border-rose-500/20 space-y-2">
+              <div className="p-3.5 rounded-2xl bg-rose-950/30 border border-rose-500/20 space-y-2">
                 <div className="flex items-center gap-2 text-rose-300 font-bold">
                   <AlertCircle className="w-4 h-4" />
-                  MikroTik API Tidak Terhubung
+                  MikroTik API Belum Terhubung
                 </div>
-                <p className="text-[11px] text-rose-300/70">{monitorError}</p>
+                <p className="text-[11px] text-rose-300/80 leading-relaxed">
+                  {monitorError || 'Gagal menghubungi MikroTik via VPS bridge. Pastikan router menyala dan tunnel SSTP aktif.'}
+                </p>
                 <button
                   onClick={testApiConnection}
                   disabled={monitorLoading}
@@ -437,36 +456,38 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
               <>
                 {/* Router Info Card */}
                 {routerInfo && (
-                  <div className="p-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/15 space-y-2">
+                  <div className="p-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/20 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                           <Cpu className="w-4 h-4 text-emerald-400" />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-200 text-[11px]">{routerInfo.board_name || 'MikroTik'}</p>
+                          <p className="font-bold text-slate-200 text-[11px]">
+                            {routerInfo.board_name || 'MikroTik hEX RB750Gr3'}
+                          </p>
                           <p className="text-[10px] text-slate-400">RouterOS v{routerInfo.version}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+                        <p className="text-emerald-400 font-bold text-[11px] flex items-center gap-1 justify-end">
                           <Clock className="w-3 h-3" />
                           {routerInfo.uptime}
                         </p>
                         <p className="text-[10px] text-slate-400">
-                          CPU: {routerInfo.cpu_load}% • RAM: {formatMemory(routerInfo.free_memory)}/{formatMemory(routerInfo.total_memory)}
+                          CPU: {routerInfo.cpu_load}% • RAM: {formatMemory(routerInfo.free_memory)} / {formatMemory(routerInfo.total_memory)}
                         </p>
                       </div>
                     </div>
 
                     {/* Traffic Live */}
-                    <div className="flex items-center justify-between pt-2 border-t border-emerald-500/10">
+                    <div className="flex items-center justify-between pt-2 border-t border-emerald-500/15">
                       <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-300">
+                        <span className="flex items-center gap-1 text-[11px] text-emerald-300 font-mono">
                           <ArrowDownCircle className="w-3.5 h-3.5" />
                           ↓ {formatBytes(trafficRx)}
                         </span>
-                        <span className="flex items-center gap-1 text-[11px] text-cyan-300">
+                        <span className="flex items-center gap-1 text-[11px] text-cyan-300 font-mono">
                           <ArrowUpCircle className="w-3.5 h-3.5" />
                           ↑ {formatBytes(trafficTx)}
                         </span>
@@ -475,7 +496,7 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
                         onClick={fetchStatus}
                         disabled={monitorLoading}
                         className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-emerald-400 transition-colors"
-                        title="Refresh Status"
+                        title="Segarkan Data Router"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${monitorLoading ? 'animate-spin' : ''}`} />
                       </button>
@@ -486,7 +507,7 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
                 {/* Active Sessions Count */}
                 <div className="flex items-center justify-between px-1">
                   <p className="font-bold text-slate-200 text-[11px]">
-                    PPPoE Online: <span className="text-emerald-400">{activeSessions.length}</span> / <span className="text-slate-400">{subscribers.length}</span>
+                    PPPoE Online: <span className="text-emerald-400">{activeSessions.length}</span> / <span className="text-slate-400">{subscribers.length} User</span>
                   </p>
                   {lastRefresh && (
                     <p className="text-[10px] text-slate-500">
@@ -495,18 +516,10 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
                   )}
                 </div>
 
-                {/* Error banner */}
-                {monitorError && (
-                  <div className="p-2 rounded-xl bg-amber-950/30 border border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                    {monitorError}
-                  </div>
-                )}
-
-                {/* User List - Combined view: all subscribers with online status */}
-                <div className="flex-1 overflow-auto space-y-1.5 max-h-[40vh] pr-1">
+                {/* User List */}
+                <div className="flex-1 overflow-auto space-y-1.5 max-h-[38vh] pr-1">
                   {subscribers
-                    .filter(s => s.status === 'active' || isUserOnline(s.username_pppoe))
+                    .filter((s) => s.status === 'active' || isUserOnline(s.username_pppoe))
                     .map((sub) => {
                       const online = isUserOnline(sub.username_pppoe);
                       const session = getSession(sub.username_pppoe);
@@ -516,17 +529,19 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
                           key={sub.id}
                           className={`p-2.5 rounded-xl border transition-all ${
                             online
-                              ? 'bg-emerald-950/15 border-emerald-500/15'
+                              ? 'bg-emerald-950/15 border-emerald-500/20'
                               : 'bg-slate-950/80 border-slate-800'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                online
-                                  ? 'bg-emerald-500/15 border border-emerald-500/25'
-                                  : 'bg-slate-800 border border-slate-700'
-                              }`}>
+                              <div
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                  online
+                                    ? 'bg-emerald-500/15 border border-emerald-500/25'
+                                    : 'bg-slate-800 border border-slate-700'
+                                }`}
+                              >
                                 {online ? (
                                   <Wifi className="w-3.5 h-3.5 text-emerald-400" />
                                 ) : (
@@ -538,11 +553,13 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
                                   <p className="font-bold text-[11px] text-slate-200 truncate">
                                     {sub.full_name}
                                   </p>
-                                  <span className={`text-[9px] px-1 py-0.5 rounded font-bold border flex-shrink-0 ${
-                                    online
-                                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                      : 'bg-slate-800 text-slate-500 border-slate-700'
-                                  }`}>
+                                  <span
+                                    className={`text-[9px] px-1 py-0.2 rounded font-bold border flex-shrink-0 ${
+                                      online
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                                        : 'bg-slate-800 text-slate-500 border-slate-700'
+                                    }`}
+                                  >
                                     {online ? 'ONLINE' : 'OFFLINE'}
                                   </span>
                                 </div>
@@ -564,7 +581,7 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
                                   onClick={() => handleKickUser(session)}
                                   disabled={kickingId === session.id}
                                   className="px-2 py-1 rounded-lg bg-rose-950/40 text-rose-300 border border-rose-800/40 hover:bg-rose-900/50 text-[10px] font-bold transition-all flex items-center gap-1 disabled:opacity-50"
-                                  title="Disconnect user"
+                                  title="Putus koneksi user ini (reconnect)"
                                 >
                                   {kickingId === session.id ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -579,144 +596,311 @@ export const MikrotikModal: React.FC<MikrotikModalProps> = ({
                         </div>
                       );
                     })}
-
-                  {subscribers.filter(s => s.status === 'active').length === 0 && (
-                    <div className="p-6 text-center text-slate-500 text-[11px]">
-                      Tidak ada pelanggan aktif
-                    </div>
-                  )}
                 </div>
               </>
             )}
           </div>
         )}
 
-        {/* ===== TAB: IMPORT (preserved from original) ===== */}
-        {activeTab === 'import' && (
-          <div className="space-y-3 flex-1 flex flex-col overflow-hidden text-xs">
-            <div className="p-3 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 text-slate-300 space-y-1 text-[11px] leading-relaxed">
-              <p className="font-bold text-cyan-300 flex items-center gap-1">
-                <HelpCircle className="w-3.5 h-3.5" /> Cara Mengambil Data dari MikroTik:
-              </p>
-              <ol className="list-decimal pl-4 space-y-0.5 text-slate-400">
-                <li>Buka <strong>Winbox</strong> MikroTik Anda &gt; klik <strong>New Terminal</strong>.</li>
-                <li>
-                  Ketik perintah: <code className="text-cyan-300 bg-slate-900 px-1 py-0.5 rounded font-mono">/ppp secret export</code> lalu tekan <strong>Enter</strong>.
-                </li>
-                <li>Salin (Copy) semua teks output terminal tersebut.</li>
-                <li>Tempel (Paste) ke kolom di bawah, lalu klik <strong>Analisa Data</strong>.</li>
-              </ol>
+        {/* ===== TAB 2: OLT HIOSO EPON ===== */}
+        {activeTab === 'olt' && (
+          <div className="space-y-3.5 flex-1 flex flex-col overflow-y-auto text-xs pr-1">
+            {/* OLT Status Card */}
+            <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/25 space-y-3">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                    <Radio className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-100">
+                      HiOSO HA7032CST EPON OLT
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Modul SFP PX20+++ 9dB • 2-PON Port
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                  ACTIVE
+                </span>
+              </div>
+
+              {/* Direct Open Button */}
+              <a
+                href="http://idn24.tunnel.id:3039"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition-all active:scale-98"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Buka Web GUI OLT (Port 3039)
+              </a>
             </div>
 
-            {!hasParsed ? (
-              <div className="flex-1 flex flex-col space-y-2">
-                <label className="text-slate-400 font-medium text-[11px]">
-                  Tempel Output Terminal MikroTik di sini:
-                </label>
-                <textarea
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={`Contoh teks dari Winbox:\n/ppp secret\nadd name="budi" password="123" profile="Paket 20M" comment="Pak Budi RT 01"\nadd name="warno" password="456" profile="Paket 10M" comment="Warno"`}
-                  className="flex-1 min-h-[140px] bg-slate-950 border border-slate-800 rounded-xl p-3 text-cyan-300 font-mono text-[11px] placeholder-slate-600 focus:outline-none focus:border-cyan-500 resize-none shadow-inner"
-                />
-                <button
-                  onClick={handleParseMikrotik}
-                  disabled={!inputText.trim()}
-                  className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-black flex items-center justify-center gap-1.5 transition-all active:scale-98 shadow-lg shadow-cyan-500/20"
-                >
-                  <Upload className="w-4 h-4" />
-                  Analisa &amp; Deteksi Pelanggan
-                </button>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col space-y-3 overflow-hidden">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-200">
-                    Terdeteksi {parsedSubs.length} Pelanggan &amp; {parsedPackages.length} Profil
-                  </span>
+            {/* OLT Connection Parameters */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+              <h4 className="font-bold text-[11px] text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-cyan-400" /> Parameter Akses &amp; Jaringan OLT
+              </h4>
+
+              <div className="space-y-2 text-[11px]">
+                <div className="flex justify-between items-center p-2 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] text-slate-400">URL Remote OLT (Tunnel.id)</p>
+                    <p className="font-mono font-bold text-cyan-300">http://idn24.tunnel.id:3039</p>
+                  </div>
                   <button
-                    onClick={() => {
-                      setHasParsed(false);
-                      setParsedSubs([]);
-                    }}
-                    className="text-cyan-400 text-[11px] underline"
+                    onClick={() => handleCopyText('http://idn24.tunnel.id:3039', 'olt_url')}
+                    className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+                    title="Salin URL"
                   >
-                    Ubah Teks Input
+                    {copied === 'olt_url' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-auto bg-slate-950 border border-slate-800 rounded-xl divide-y divide-slate-800/80 max-h-48 p-2">
-                  {parsedSubs.map((sub, idx) => (
-                    <div key={idx} className="py-1.5 px-2 flex justify-between items-center text-[11px]">
-                      <div>
-                        <p className="font-bold text-slate-200">{sub.full_name}</p>
-                        <p className="font-mono text-cyan-400 text-[10px]">
-                          user: {sub.username_pppoe} • pass: {sub.pppoe_password}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold text-[10px]">
-                          {sub.package_name}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex justify-between items-center p-2 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] text-slate-400">IP Management Local / VLAN 99</p>
+                    <p className="font-mono font-bold text-slate-200">192.168.99.254 / 192.168.0.254</p>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">Port 4 &amp; Trunk</span>
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300 pt-1">
-                  <input
-                    type="checkbox"
-                    checked={replaceExisting}
-                    onChange={(e) => setReplaceExisting(e.target.checked)}
-                    className="rounded accent-cyan-400 w-4 h-4"
-                  />
-                  <span>
-                    Ganti seluruh data pelanggan lama dengan data MikroTik ini (Timpa)
-                  </span>
-                </label>
-
-                <button
-                  onClick={handleApplyImport}
-                  className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-500/25 active:scale-98"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Masukkan {parsedSubs.length} Pelanggan ke Aplikasi
-                </button>
+                <div className="flex justify-between items-center p-2 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] text-slate-400">Status Auto-Register Modem Warga</p>
+                    <p className="font-bold text-emerald-400">Aktif (Plug &amp; Play ONT ZTE)</p>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Auto-ONU</span>
+                </div>
               </div>
-            )}
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-slate-400 text-[10px] leading-relaxed">
+              💡 <strong>Tips OLT:</strong> OLT HiOSO ini melayani distribusi fiber optic ke ODP warga. Setiap modem ONT ZTE baru yang dicolokkan ke splitter ODP akan otomatis teregistrasi tanpa perlu bind MAC manual.
+            </div>
           </div>
         )}
 
-        {/* ===== TAB: EXPORT (preserved from original) ===== */}
-        {activeTab === 'export' && (
-          <div className="space-y-3 flex-1 flex flex-col overflow-hidden text-xs">
-            <p className="text-slate-400 leading-relaxed text-[11px]">
-              Skrip RouterOS di bawah berisi seluruh profil paket dan secret PPPoE yang ada di aplikasi. Salin dan tempel di Winbox MikroTik:
-            </p>
-
-            <div className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-4 overflow-auto font-mono text-[11px] text-cyan-300 whitespace-pre leading-relaxed shadow-inner max-h-56">
-              {script}
+        {/* ===== TAB 3: REMOTE WINBOX ===== */}
+        {activeTab === 'winbox' && (
+          <div className="space-y-3.5 flex-1 flex flex-col overflow-y-auto text-xs pr-1">
+            <div className="p-4 rounded-2xl bg-blue-950/30 border border-blue-500/25 space-y-3">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                    <Terminal className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-100">
+                      Remote Winbox MikroTik
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Akses GUI Penuh RouterOS via Tunnel.id
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                  ONLINE
+                </span>
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
-              <span className="text-slate-500 font-medium text-[11px]">
-                {subscribers.length} Pelanggan Siap Diekspor
-              </span>
+            {/* Connection Parameters */}
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+              <h4 className="font-bold text-[11px] text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-blue-400" /> Kredensial Login Winbox
+              </h4>
+
+              <div className="space-y-2 text-[11px]">
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-medium">Connect To (Host &amp; Port)</p>
+                    <p className="font-mono font-bold text-blue-300 text-xs">idn23.tunnel.id:3109</p>
+                  </div>
+                  <button
+                    onClick={() => handleCopyText('idn23.tunnel.id:3109', 'winbox_host')}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold flex items-center gap-1"
+                  >
+                    {copied === 'winbox_host' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Salin</span>
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-medium">Login User</p>
+                    <p className="font-mono font-bold text-slate-200">admin</p>
+                  </div>
+                  <button
+                    onClick={() => handleCopyText('admin', 'winbox_user')}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold flex items-center gap-1"
+                  >
+                    {copied === 'winbox_user' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Salin</span>
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-medium">Password Winbox &amp; API</p>
+                    <p className="font-mono font-bold text-amber-300">SakoMakmur2026!</p>
+                  </div>
+                  <button
+                    onClick={() => handleCopyText('SakoMakmur2026!', 'winbox_pass')}
+                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold flex items-center gap-1"
+                  >
+                    {copied === 'winbox_pass' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>Salin</span>
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900 border border-slate-800/80">
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-medium">API Endpoint (Mikhmon / Bridge)</p>
+                    <p className="font-mono font-bold text-slate-300 text-xs">idn32.tunnel.id:3201</p>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Port 8728</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 text-slate-400 text-[10px] leading-relaxed">
+              💡 <strong>Cara Membuka Winbox:</strong> Buka aplikasi Winbox di PC / Laptop Anda, isi kolom <strong>Connect To</strong> dengan <code>idn23.tunnel.id:3109</code>, User: <code>admin</code>, Password: <code>SakoMakmur2026!</code>, lalu klik Connect.
+            </div>
+          </div>
+        )}
+
+        {/* ===== TAB 4: SKRIP PPPOE (IMPOR & EKSPOR) ===== */}
+        {activeTab === 'scripts' && (
+          <div className="space-y-3 flex-1 flex flex-col overflow-hidden text-xs">
+            {/* Sub-tab switcher */}
+            <div className="grid grid-cols-2 gap-1 p-0.5 bg-slate-950 rounded-xl border border-slate-800 text-[11px] font-bold">
               <button
-                onClick={handleCopy}
-                className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 transition-all active:scale-95"
+                onClick={() => setScriptSubTab('export')}
+                className={`py-1.5 rounded-lg transition-all ${
+                  scriptSubTab === 'export'
+                    ? 'bg-purple-500 text-white shadow font-black'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
               >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4" /> Berhasil Tersalin!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" /> Salin Skrip RouterOS
-                  </>
-                )}
+                Salin Skrip Ekspor ({subscribers.length} User)
+              </button>
+              <button
+                onClick={() => setScriptSubTab('import')}
+                className={`py-1.5 rounded-lg transition-all ${
+                  scriptSubTab === 'import'
+                    ? 'bg-cyan-500 text-slate-950 shadow font-black'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Impor Data Winbox
               </button>
             </div>
+
+            {scriptSubTab === 'export' ? (
+              <div className="space-y-2 flex-1 flex flex-col overflow-hidden">
+                <p className="text-slate-400 text-[11px]">
+                  Skrip RouterOS di bawah siap di-paste ke New Terminal Winbox untuk setup profil dan pelanggan otomatis:
+                </p>
+                <div className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl p-3 overflow-auto font-mono text-[10px] text-cyan-300 whitespace-pre leading-relaxed shadow-inner max-h-52">
+                  {script}
+                </div>
+                <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-500 text-[11px]">
+                    {subscribers.length} Pelanggan
+                  </span>
+                  <button
+                    onClick={() => handleCopyText(script, 'full_script')}
+                    className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-bold flex items-center gap-1.5 shadow transition-all active:scale-95"
+                  >
+                    {copied === 'full_script' ? (
+                      <>
+                        <Check className="w-4 h-4 text-emerald-300" /> Tersalin!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" /> Salin Skrip RouterOS
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2 flex-1 flex flex-col overflow-hidden">
+                {!hasParsed ? (
+                  <>
+                    <p className="text-slate-400 text-[11px]">
+                      Paste output dari perintah <code>/ppp secret export</code> di Winbox ke bawah:
+                    </p>
+                    <textarea
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      placeholder={`/ppp secret\nadd name="budi" password="123" profile="Paket 10M"`}
+                      className="flex-1 min-h-[120px] bg-slate-950 border border-slate-800 rounded-xl p-3 text-cyan-300 font-mono text-[11px] placeholder-slate-600 focus:outline-none focus:border-cyan-500 resize-none shadow-inner"
+                    />
+                    <button
+                      onClick={handleParseMikrotik}
+                      disabled={!inputText.trim()}
+                      className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-black flex items-center justify-center gap-1.5 transition-all shadow"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Analisa Data MikroTik
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col space-y-2 overflow-hidden">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-200">
+                        Terdeteksi {parsedSubs.length} Pelanggan
+                      </span>
+                      <button
+                        onClick={() => {
+                          setHasParsed(false);
+                          setParsedSubs([]);
+                        }}
+                        className="text-cyan-400 text-[11px] underline"
+                      >
+                        Ubah Teks Input
+                      </button>
+                    </div>
+
+                    <div className="flex-1 overflow-auto bg-slate-950 border border-slate-800 rounded-xl divide-y divide-slate-800/80 max-h-44 p-2">
+                      {parsedSubs.map((sub, idx) => (
+                        <div key={idx} className="py-1.5 px-2 flex justify-between items-center text-[11px]">
+                          <div>
+                            <p className="font-bold text-slate-200">{sub.full_name}</p>
+                            <p className="font-mono text-cyan-400 text-[10px]">user: {sub.username_pppoe}</p>
+                          </div>
+                          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-semibold text-[10px]">
+                            {sub.package_name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300 pt-1">
+                      <input
+                        type="checkbox"
+                        checked={replaceExisting}
+                        onChange={(e) => setReplaceExisting(e.target.checked)}
+                        className="rounded accent-cyan-400 w-4 h-4"
+                      />
+                      <span>Timpa seluruh data lama dengan hasil impor ini</span>
+                    </label>
+
+                    <button
+                      onClick={handleApplyImport}
+                      className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center justify-center gap-1.5 transition-all shadow"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Masukkan {parsedSubs.length} Pelanggan ke Aplikasi
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
