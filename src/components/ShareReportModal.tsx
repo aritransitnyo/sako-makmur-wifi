@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Share2, Copy, Check, MessageSquare, X } from 'lucide-react';
 import { BusinessSettings, Investor, Subscriber, ExpenseTransaction } from '../types';
 import { formatRupiah } from './MetricCard';
+import { calculateFinancials } from '../lib/financialCalculations';
 
 interface ShareReportModalProps {
   isOpen: boolean;
@@ -26,47 +27,39 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
 
   const currentMonth = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
 
-  const activeSubscribers = subscribers.filter((s) => s.status === 'active');
-  const paidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'paid');
-  
-  // Real cash inflow
-  const realCashIn = paidSubscribers.reduce(
-    (sum, s) => sum + (s.package_price || 200000),
-    0
-  );
-
-  // Real cash outflow
-  const realCashOut = expenses.reduce((sum, e) => sum + e.amount, 0);
-
-  // Reserve fund (10% of cash in)
-  const reserveFund = realCashIn * (settings.reserve_fund_pct / 100);
-
-  // Net Profit
-  const netProfit = Math.max(0, realCashIn - realCashOut - reserveFund);
+  const fin = calculateFinancials(subscribers, settings, investors);
+  const realCashIn = fin.totalOmzet;
+  const realCashOut = fin.totalOpex;
+  const reserveFund = fin.reserveFundAmount;
+  const netProfit = fin.netProfit;
 
   // Generate WhatsApp message text
   let reportText = `📊 *LAPORAN KEUANGAN & DIVIDEN ${settings.business_name.toUpperCase()}*\n`;
   reportText += `🗓️ *Periode:* ${currentMonth}\n`;
   reportText += `📡 *Status Backhaul:* Starlink High-Speed Active\n`;
   reportText += `───────────────────────\n`;
-  reportText += `👥 *User Aktif:* ${activeSubscribers.length} Pelanggan\n`;
-  reportText += `✅ *Sudah Bayar:* ${paidSubscribers.length} User (${formatRupiah(realCashIn)})\n`;
-  reportText += `⏳ *Belum Bayar:* ${activeSubscribers.length - paidSubscribers.length} User\n`;
+  reportText += `👥 *User Aktif:* ${fin.activeCount} Pelanggan\n`;
+  reportText += `✅ *Sudah Bayar:* ${fin.paidCount} User (${formatRupiah(realCashIn)})\n`;
+  reportText += `⏳ *Belum Bayar:* ${fin.unpaidCount} User (Potensi ${formatRupiah(fin.totalPotensiOmzet)})\n`;
   reportText += `───────────────────────\n`;
   reportText += `💵 *Total Kas Masuk:* ${formatRupiah(realCashIn)}\n`;
-  reportText += `📉 *Total Biaya OPEX Riil:* ${formatRupiah(realCashOut)}\n`;
-  reportText += `🛡️ *Dana Cadangan (${settings.reserve_fund_pct}%):* ${formatRupiah(reserveFund)}\n`;
+  reportText += `📉 *Total Beban OPEX:* ${formatRupiah(realCashOut)}\n`;
+  reportText += `   • Starlink: ${formatRupiah(fin.starlinkCost)}\n`;
+  reportText += `   • Listrik Node: ${formatRupiah(fin.nodePowerCost)}\n`;
+  reportText += `   • Gaji Operator: ${formatRupiah(fin.operatorSalary)}\n`;
+  reportText += `   • Jasa Tagih (${fin.paidCount}x5rb): ${formatRupiah(fin.totalCollectorFee)}\n`;
+  reportText += `   • Marketing: ${formatRupiah(fin.marketingFee)}\n`;
+  reportText += `🛡️ *Dana Cadangan (${fin.reserveFundPct}%):* ${formatRupiah(reserveFund)}\n`;
   reportText += `───────────────────────\n`;
   reportText += `💰 *LABA BERSIH SIAP BAGI:* ${formatRupiah(netProfit)}\n\n`;
   reportText += `🤝 *DISTRIBUSI DIVIDEN INVESTOR:*\n`;
 
-  investors.forEach((inv, index) => {
-    const div = (netProfit * inv.share_percentage) / 100;
-    reportText += `${index + 1}. *${inv.name}* (${inv.share_percentage}%): ${formatRupiah(div)}\n`;
+  fin.investorDividends.forEach((inv, index) => {
+    reportText += `${index + 1}. *${inv.name}* (${inv.share_percentage}%): ${formatRupiah(inv.dividendAmount)}\n`;
   });
 
   reportText += `───────────────────────\n`;
-  reportText += `_Laporan otomatis digenerate via ${settings.business_name} PWA Manager._`;
+  reportText += `_Laporan resmi otomatis digenerate via ${settings.business_name} System._`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(reportText);

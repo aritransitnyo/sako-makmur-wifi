@@ -9,6 +9,7 @@ import {
 } from '../types';
 import { formatRupiah } from './MetricCard';
 import { calculateContractProgress } from './InvestorsView';
+import { calculateFinancials } from '../lib/financialCalculations';
 
 interface PrintReportModalProps {
   isOpen: boolean;
@@ -41,18 +42,19 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   }).format(new Date());
 
   // Calculations
-  const activeSubs = subscribers.filter((s) => s.status === 'active');
-  const paidSubs = activeSubs.filter((s) => s.payment_status === 'paid');
+  const fin = calculateFinancials(subscribers, settings, investors, capexItems);
+  const activeSubs = fin.activeSubs;
+  const paidSubs = fin.paidSubs;
 
-  const totalModal = investors.reduce((sum, i) => sum + i.capital_invested, 0);
-  const totalCapexSpent = capexItems.reduce((sum, c) => sum + c.total_price, 0);
-  const sisaKasModal = Math.max(0, totalModal - totalCapexSpent);
+  const totalModal = fin.totalCapital;
+  const totalCapexSpent = fin.totalCapexSpent;
+  const sisaKasModal = fin.sisaKasModal;
 
-  const realCashIn = paidSubs.reduce((sum, s) => sum + (s.package_price || 200000), 0);
-  const realOpex = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const collectorFee = (settings.collector_fee_per_user ?? 5000) * paidSubs.length;
-  const reserveFund = realCashIn * (settings.reserve_fund_pct / 100);
-  const netProfit = Math.max(0, realCashIn - realOpex - reserveFund);
+  const realCashIn = fin.totalOmzet;
+  const realOpex = fin.totalOpex;
+  const collectorFee = fin.totalCollectorFee;
+  const reserveFund = fin.reserveFundAmount;
+  const netProfit = fin.netProfit;
 
   const handlePrint = () => {
     window.print();

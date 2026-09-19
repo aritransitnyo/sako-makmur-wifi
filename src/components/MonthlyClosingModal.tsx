@@ -25,6 +25,7 @@ import {
   InvestorDividendSnapshot,
 } from '../types';
 import { formatRupiah } from './MetricCard';
+import { calculateFinancials } from '../lib/financialCalculations';
 
 interface MonthlyClosingModalProps {
   isOpen: boolean;
@@ -74,23 +75,21 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Real live numbers for current period closing
-  const activeSubs = subscribers.filter((s) => s.status === 'active');
-  const paidSubs = activeSubs.filter((s) => s.payment_status === 'paid');
-  const realCashIn = paidSubs.reduce(
-    (sum, s) => sum + (s.package_price || 200000),
-    0
-  );
-  const realCashOut = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const reserveFund = realCashIn * (settings.reserve_fund_pct / 100);
-  const netProfit = Math.max(0, realCashIn - realCashOut - reserveFund);
+  // Unified live numbers for current period closing
+  const fin = calculateFinancials(subscribers, settings, investors);
+  const activeSubs = fin.activeSubs;
+  const paidSubs = fin.paidSubs;
+  const realCashIn = fin.totalOmzet;
+  const realOpex = fin.totalOpex;
+  const reserveFund = fin.reserveFundAmount;
+  const netProfit = fin.netProfit;
 
-  const currentDividends: InvestorDividendSnapshot[] = investors.map((inv) => ({
+  const currentDividends: InvestorDividendSnapshot[] = fin.investorDividends.map((inv) => ({
     investor_id: inv.id,
     name: inv.name,
     role: inv.role,
     share_percentage: inv.share_percentage,
-    dividend_amount: (netProfit * inv.share_percentage) / 100,
+    dividend_amount: inv.dividendAmount,
     paid_status: 'pending',
   }));
 
@@ -103,12 +102,12 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
       period_key: periodKey,
       closed_at: new Date().toISOString(),
       closed_by: `${investors.find((i) => i.role === 'Managing Owner')?.name || 'Pengelola'}`,
-      active_subscribers_count: activeSubs.length,
-      paid_subscribers_count: paidSubs.length,
+      active_subscribers_count: fin.activeCount,
+      paid_subscribers_count: fin.paidCount,
       gross_revenue: realCashIn,
-      total_expenses: realCashOut,
+      total_expenses: realOpex,
       reserve_fund_amount: reserveFund,
-      reserve_fund_pct: settings.reserve_fund_pct,
+      reserve_fund_pct: fin.reserveFundPct,
       net_profit: netProfit,
       investor_dividends: currentDividends,
       notes: notes.trim(),
@@ -386,8 +385,8 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
                 <span className="font-bold text-emerald-400">{formatRupiah(realCashIn)}</span>
               </div>
               <div className="flex justify-between text-slate-300">
-                <span>Total OPEX Riil Tercatat:</span>
-                <span className="font-bold text-rose-300">{formatRupiah(realCashOut)}</span>
+                <span>Total Beban OPEX:</span>
+                <span className="font-bold text-rose-300">{formatRupiah(realOpex)}</span>
               </div>
               <div className="flex justify-between text-slate-300">
                 <span>Dana Cadangan ({settings.reserve_fund_pct}%):</span>

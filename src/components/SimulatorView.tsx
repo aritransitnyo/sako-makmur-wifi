@@ -20,25 +20,30 @@ export const SimulatorView: React.FC<SimulatorViewProps> = ({
   const [starlinkCost, setStarlinkCost] = useState<number>(settings.starlink_cost || 850000);
   const [nodePowerCost, setNodePowerCost] = useState<number>(settings.node_power_cost || 300000);
   const [operatorSalary, setOperatorSalary] = useState<number>(settings.operator_salary || 1000000);
+  const [collectorFeePerUser, setCollectorFeePerUser] = useState<number>(settings.collector_fee_per_user ?? 5000);
+  const [marketingFee, setMarketingFee] = useState<number>(settings.marketing_fee_monthly ?? 250000);
   const [reservePct, setReservePct] = useState<number>(settings.reserve_fund_pct || 10.0);
 
   // Live Calculations according to PRD
   const totalOmzet = userCount * arpu;
+  const totalCollectorFee = userCount * collectorFeePerUser;
   const reserveFund = totalOmzet * (reservePct / 100);
-  const totalOpex = starlinkCost + nodePowerCost + operatorSalary + reserveFund;
+  const totalOpex = starlinkCost + nodePowerCost + operatorSalary + totalCollectorFee + marketingFee + reserveFund;
   const netProfit = Math.max(0, totalOmzet - totalOpex);
   const profitMargin = totalOmzet > 0 ? ((netProfit / totalOmzet) * 100).toFixed(1) : '0';
 
   const totalCapex = capexItems.reduce((sum, item) => sum + item.total_price, 0);
-  const bepMonths = netProfit > 0 ? (totalCapex / netProfit).toFixed(1) : '∞';
+  const bepMonths = netProfit > 0 ? (totalCapex / netProfit).toFixed(1) : (totalCapex <= 0 ? '0.0' : '∞');
 
   const handleReset = () => {
     setUserCount(35);
     setArpu(150000);
-    setStarlinkCost(settings.starlink_cost);
-    setNodePowerCost(settings.node_power_cost);
-    setOperatorSalary(settings.operator_salary);
-    setReservePct(settings.reserve_fund_pct);
+    setStarlinkCost(settings.starlink_cost || 850000);
+    setNodePowerCost(settings.node_power_cost || 300000);
+    setOperatorSalary(settings.operator_salary || 1000000);
+    setCollectorFeePerUser(settings.collector_fee_per_user ?? 5000);
+    setMarketingFee(settings.marketing_fee_monthly ?? 250000);
+    setReservePct(settings.reserve_fund_pct || 10.0);
   };
 
   return (

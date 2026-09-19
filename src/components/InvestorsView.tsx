@@ -31,7 +31,14 @@ interface InvestorsViewProps {
 }
 
 export const calculateContractProgress = (joinDateStr?: string, totalMonths: number = 12) => {
-  const start = joinDateStr ? new Date(joinDateStr) : new Date('2026-09-01');
+  const safeMonths = Math.max(1, Number(totalMonths) || 12);
+  let start = new Date('2026-09-01');
+  if (joinDateStr) {
+    const parsed = new Date(joinDateStr);
+    if (!isNaN(parsed.getTime())) {
+      start = parsed;
+    }
+  }
   const now = new Date();
 
   let monthsPassed = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
@@ -39,16 +46,16 @@ export const calculateContractProgress = (joinDateStr?: string, totalMonths: num
     monthsPassed += 1;
   }
   monthsPassed = Math.max(1, monthsPassed);
-  const clampedMonths = Math.min(totalMonths, monthsPassed);
-  const percent = Math.min(100, Math.round((clampedMonths / totalMonths) * 100));
-  const remaining = Math.max(0, totalMonths - monthsPassed);
+  const clampedMonths = Math.min(safeMonths, monthsPassed);
+  const percent = Math.min(100, Math.round((clampedMonths / safeMonths) * 100));
+  const remaining = Math.max(0, safeMonths - monthsPassed);
 
   const end = new Date(start);
-  end.setMonth(end.getMonth() + totalMonths);
+  end.setMonth(end.getMonth() + safeMonths);
   const endStr = end.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
   const startStr = start.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
 
-  return { monthsPassed: clampedMonths, totalMonths, percent, remaining, startStr, endStr };
+  return { monthsPassed: clampedMonths, totalMonths: safeMonths, percent, remaining, startStr, endStr };
 };
 
 export const InvestorsView: React.FC<InvestorsViewProps> = ({
@@ -277,6 +284,12 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
             </div>
           );
         })}
+
+        {investors.length === 0 && (
+          <div className="p-8 text-center text-slate-500 text-xs bg-slate-900/40 rounded-2xl border border-slate-800/60">
+            Belum ada data investor atau pemegang saham.
+          </div>
+        )}
       </div>
 
       {/* Tabel Riwayat Tutup Buku Bulanan (Audit Trail) */}

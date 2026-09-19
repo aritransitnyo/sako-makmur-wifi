@@ -15,6 +15,7 @@ import { MonthlyClosingModal } from '../components/MonthlyClosingModal';
 import { PrintReportModal } from '../components/PrintReportModal';
 import { BroadcastModal } from '../components/BroadcastModal';
 import { AuthGate } from '../components/AuthGate';
+import { calculateFinancials } from '../lib/financialCalculations';
 import {
   DataService,
   DEFAULT_SETTINGS,
@@ -392,21 +393,13 @@ export default function Home() {
     loadAllData();
   };
 
-  // Financial Calculations
-  const activeSubs = subscribers.filter((s) => s.status === 'active');
-  const paidSubs = activeSubs.filter((s) => s.payment_status === 'paid');
-  const realCashIn = paidSubs.reduce(
-    (sum, s) => sum + (s.package_price || 200000),
-    0
-  );
-  const realCashOut = expenses.reduce((sum, e) => sum + e.amount, 0);
-
-  const reserveFund = realCashIn * (settings.reserve_fund_pct / 100);
-  const netProfit = Math.max(0, realCashIn - realCashOut - reserveFund);
-
-  const totalCapital = investors.reduce((sum, inv) => sum + inv.capital_invested, 0);
-  const totalCapexSpent = capexItems.reduce((sum, item) => sum + item.total_price, 0);
-  const sisaKasModal = Math.max(0, totalCapital - totalCapexSpent);
+  // Unified Financial Calculations
+  const fin = calculateFinancials(subscribers, settings, investors, capexItems);
+  const realCashIn = fin.totalOmzet;
+  const netProfit = fin.netProfit;
+  const totalCapital = fin.totalCapital;
+  const totalCapexSpent = fin.totalCapexSpent;
+  const sisaKasModal = fin.sisaKasModal;
 
   // If auth gate is not yet verified
   if (authChecked && !isAuthenticated) {

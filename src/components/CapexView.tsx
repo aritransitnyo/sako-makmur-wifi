@@ -197,6 +197,12 @@ export const CapexView: React.FC<CapexViewProps> = ({
             </div>
           </div>
         ))}
+
+        {capexItems.length === 0 && (
+          <div className="p-8 text-center text-slate-500 text-xs bg-slate-900/40 rounded-2xl border border-slate-800/60">
+            Belum ada data pengadaan aset / CAPEX.
+          </div>
+        )}
       </div>
 
       {/* Modal Tambah / Edit CAPEX */}

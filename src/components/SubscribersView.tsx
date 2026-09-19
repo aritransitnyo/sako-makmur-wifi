@@ -345,11 +345,11 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
             >
               {/* Header Info */}
               <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-sm text-slate-100">{sub.full_name}</p>
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-bold text-xs sm:text-sm text-slate-100 truncate">{sub.full_name}</p>
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border flex-shrink-0 ${
                         isPaid
                           ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                           : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
@@ -358,18 +358,18 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                       {isPaid ? `✓ Lunas${sub.payment_method ? ` (${sub.payment_method})` : ''}` : '⏳ Belum Bayar'}
                     </span>
                     {!isActive && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex-shrink-0">
                         Isolir
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 text-slate-400 text-[11px]">
+                  <div className="flex items-center gap-2 sm:gap-3 text-slate-400 text-[10px] sm:text-[11px] flex-wrap">
                     <span className="font-mono text-cyan-400 flex items-center gap-1">
-                      <Wifi className="w-3 h-3" />
+                      <Wifi className="w-3 h-3 flex-shrink-0" />
                       {sub.username_pppoe}
                     </span>
                     <span className="flex items-center gap-1 text-slate-500">
-                      <Calendar className="w-3 h-3" />
+                      <Calendar className="w-3 h-3 flex-shrink-0" />
                       Jatuh Tempo: Tgl {sub.due_date || 10}
                     </span>
                     {sub.installation_fee && sub.installation_fee > 0 && (
@@ -380,18 +380,18 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <p className="font-black text-sm text-slate-100">
+                <div className="text-right flex-shrink-0">
+                  <p className="font-black text-xs sm:text-sm text-slate-100">
                     {formatRupiah(sub.package_price || 200000)}
                   </p>
-                  <span className="inline-block mt-0.5 text-[10px] font-semibold text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-800/40">
+                  <span className="inline-block mt-0.5 text-[9px] sm:text-[10px] font-semibold text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-800/40">
                     {sub.package_name || '5 Mbps'}
                   </span>
                 </div>
               </div>
 
               {/* Address & Quick Actions Bar */}
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-slate-400 text-[11px] gap-2">
+              <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between text-slate-400 text-[11px] gap-2">
                 <div className="flex items-center gap-1.5 truncate">
                   <MapPin className="w-3 h-3 text-slate-500 flex-shrink-0" />
                   <span className="truncate">{sub.address || 'Alamat RT/RW'}</span>

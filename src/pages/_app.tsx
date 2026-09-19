@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { useEffect } from 'react';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -15,7 +16,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <>
+    <ErrorBoundary>
       <Head>
         <title>Sako Makmur WiFi - Executive ISP Management</title>
         <meta
@@ -30,6 +31,6 @@ export default function App({ Component, pageProps }: AppProps) {
         <link rel="manifest" href="/manifest.json" />
       </Head>
       <Component {...pageProps} />
-    </>
+    </ErrorBoundary>
   );
 }
