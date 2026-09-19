@@ -15,6 +15,8 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   starlink_cost: 850000,
   node_power_cost: 300000,
   operator_salary: 1000000,
+  collector_fee_per_user: 5000,
+  marketing_fee_monthly: 250000,
   reserve_fund_pct: 10.0,
   admin_pin: '1234',
 };
@@ -26,6 +28,8 @@ export const DEFAULT_INVESTORS: Investor[] = [
     role: 'Managing Owner',
     capital_invested: 15000000,
     share_percentage: 60.0,
+    join_date: '2026-09-01',
+    contract_months: 12,
     created_at: new Date().toISOString(),
   },
   {
@@ -34,6 +38,8 @@ export const DEFAULT_INVESTORS: Investor[] = [
     role: 'Investor',
     capital_invested: 5000000,
     share_percentage: 20.0,
+    join_date: '2026-09-01',
+    contract_months: 12,
     created_at: new Date().toISOString(),
   },
   {
@@ -42,6 +48,8 @@ export const DEFAULT_INVESTORS: Investor[] = [
     role: 'Investor',
     capital_invested: 5000000,
     share_percentage: 20.0,
+    join_date: '2026-09-01',
+    contract_months: 12,
     created_at: new Date().toISOString(),
   },
 ];
@@ -376,7 +384,13 @@ export class DataService {
         return { data, isSupabase: true };
       }
     } catch {}
-    return { data: this.getLocal('investors', DEFAULT_INVESTORS), isSupabase: false };
+    const stored = this.getLocal('investors', DEFAULT_INVESTORS);
+    const updated = stored.map((inv) => ({
+      ...inv,
+      join_date: inv.join_date || '2026-09-01',
+      contract_months: inv.contract_months || 12,
+    }));
+    return { data: updated, isSupabase: false };
   }
 
   static async saveInvestors(investors: Investor[]): Promise<void> {

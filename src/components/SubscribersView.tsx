@@ -28,6 +28,7 @@ interface SubscribersViewProps {
   businessName: string;
   subscribers: Subscriber[];
   packages: PppoePackage[];
+  collectorFeePerUser?: number;
   onAddSubscriber: (sub: Omit<Subscriber, 'id'>) => void;
   onUpdateSubscriber: (sub: Subscriber) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'suspended' | 'terminated') => void;
@@ -35,12 +36,14 @@ interface SubscribersViewProps {
   onCancelPayment: (id: string) => void;
   onDeleteSubscriber: (id: string) => void;
   onOpenMikrotikModal: () => void;
+  onOpenBroadcastModal: () => void;
 }
 
 export const SubscribersView: React.FC<SubscribersViewProps> = ({
   businessName,
   subscribers,
   packages,
+  collectorFeePerUser = 5000,
   onAddSubscriber,
   onUpdateSubscriber,
   onToggleStatus,
@@ -48,6 +51,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   onCancelPayment,
   onDeleteSubscriber,
   onOpenMikrotikModal,
+  onOpenBroadcastModal,
 }) => {
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'unpaid' | 'paid' | 'suspended'>('all');
@@ -233,15 +237,40 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
           </div>
         </div>
 
-        {/* Progress tagihan */}
+        {/* Progress tagihan & Jasa Tagih */}
         <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
-          <span className="text-emerald-400 font-bold">
-            ✓ {paidSubscribers.length} Lunas
-          </span>
-          <span className="text-amber-400 font-bold">
-            ⏳ {unpaidSubscribers.length} Belum Bayar
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-400 font-bold">
+              ✓ {paidSubscribers.length} Lunas
+            </span>
+            <span className="text-amber-400 font-bold">
+              ⏳ {unpaidSubscribers.length} Belum Bayar
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400">
+            Jasa Tagih: <strong className="text-cyan-300">{formatRupiah(paidSubscribers.length * collectorFeePerUser)}</strong>
           </span>
         </div>
+      </div>
+
+      {/* Siklus Tagihan Quick Actions: Broadcast Tgl 10 & Warning Tgl 18 */}
+      <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
+        <div>
+          <p className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+            <Send className="w-3.5 h-3.5 text-cyan-400" />
+            Siklus Tagihan Tanggal 10 &amp; 18
+          </p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            Kirim WhatsApp Tagihan Tgl 10 / Warning Isolir Tgl 18
+          </p>
+        </div>
+        <button
+          onClick={onOpenBroadcastModal}
+          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-md shadow-cyan-500/20 flex items-center gap-1.5 transition-all active:scale-95"
+        >
+          <Send className="w-3.5 h-3.5" />
+          Broadcast WA
+        </button>
       </div>
 
       {/* Search & Filter Tabs */}

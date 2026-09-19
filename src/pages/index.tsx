@@ -13,6 +13,7 @@ import { MikrotikModal } from '../components/MikrotikModal';
 import { ResetWizardModal } from '../components/ResetWizardModal';
 import { MonthlyClosingModal } from '../components/MonthlyClosingModal';
 import { PrintReportModal } from '../components/PrintReportModal';
+import { BroadcastModal } from '../components/BroadcastModal';
 import { AuthGate } from '../components/AuthGate';
 import {
   DataService,
@@ -50,6 +51,7 @@ export default function Home() {
   const [showResetWizardModal, setShowResetWizardModal] = useState(false);
   const [showClosingModal, setShowClosingModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
   // Core Data
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
@@ -452,6 +454,7 @@ export default function Home() {
             businessName={settings.business_name}
             subscribers={subscribers}
             packages={packages}
+            collectorFeePerUser={settings.collector_fee_per_user ?? 5000}
             onAddSubscriber={handleAddSubscriber}
             onUpdateSubscriber={handleUpdateSubscriber}
             onToggleStatus={handleToggleSubscriberStatus}
@@ -459,6 +462,7 @@ export default function Home() {
             onCancelPayment={handleCancelPayment}
             onDeleteSubscriber={handleDeleteSubscriber}
             onOpenMikrotikModal={() => setShowMikrotikModal(true)}
+            onOpenBroadcastModal={() => setShowBroadcastModal(true)}
           />
         )}
 
@@ -565,6 +569,13 @@ export default function Home() {
         subscribers={subscribers}
         expenses={expenses}
         capexItems={capexItems}
+      />
+
+      <BroadcastModal
+        isOpen={showBroadcastModal}
+        onClose={() => setShowBroadcastModal(false)}
+        businessName={settings.business_name}
+        subscribers={subscribers}
       />
     </div>
   );

@@ -13,6 +13,8 @@ import {
   Clock,
   Edit3,
   Settings,
+  Banknote,
+  Megaphone,
 } from 'lucide-react';
 import { MetricCard, formatRupiah } from './MetricCard';
 import { BusinessSettings, Investor, Subscriber, CapexItem } from '../types';
@@ -38,6 +40,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [starlinkCost, setStarlinkCost] = useState(settings.starlink_cost);
   const [nodePowerCost, setNodePowerCost] = useState(settings.node_power_cost);
   const [operatorSalary, setOperatorSalary] = useState(settings.operator_salary);
+  const [collectorFee, setCollectorFee] = useState(settings.collector_fee_per_user ?? 5000);
+  const [marketingFee, setMarketingFee] = useState(settings.marketing_fee_monthly ?? 250000);
   const [reservePct, setReservePct] = useState(settings.reserve_fund_pct);
 
   // Financial Calculations according to PRD formulas
@@ -46,15 +50,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   
   // Real gross revenue from active users
   const totalOmzet = activeSubscribers.reduce(
-    (sum, s) => sum + (s.package_price || 125000),
+    (sum, s) => sum + (s.package_price || 200000),
     0
   );
 
+  const totalJasaTagih = activeCount * (settings.collector_fee_per_user ?? 5000);
+  const totalMarketing = settings.marketing_fee_monthly ?? 250000;
   const reserveFund = totalOmzet * (settings.reserve_fund_pct / 100);
+
   const totalOpex =
     settings.starlink_cost +
     settings.node_power_cost +
     settings.operator_salary +
+    totalJasaTagih +
+    totalMarketing +
     reserveFund;
 
   const netProfit = Math.max(0, totalOmzet - totalOpex);
@@ -81,6 +90,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const starlinkPct = totalOpex > 0 ? ((settings.starlink_cost / totalOpex) * 100).toFixed(0) : '0';
   const nodePowerPct = totalOpex > 0 ? ((settings.node_power_cost / totalOpex) * 100).toFixed(0) : '0';
   const operatorPct = totalOpex > 0 ? ((settings.operator_salary / totalOpex) * 100).toFixed(0) : '0';
+  const collectorPct = totalOpex > 0 ? ((totalJasaTagih / totalOpex) * 100).toFixed(0) : '0';
   const reserveFundPctBar = totalOpex > 0 ? ((reserveFund / totalOpex) * 100).toFixed(0) : '0';
 
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -90,6 +100,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       starlink_cost: starlinkCost,
       node_power_cost: nodePowerCost,
       operator_salary: operatorSalary,
+      collector_fee_per_user: collectorFee,
+      marketing_fee_monthly: marketingFee,
       reserve_fund_pct: reservePct,
     });
     setShowSettingsModal(false);
@@ -148,7 +160,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <MetricCard
           label="Total Beban OPEX"
           value={formatRupiah(totalOpex)}
-          subValue="Starlink + Node + Ops"
+          subValue="Starlink+Ops+Jasa Tagih"
           icon={<Zap className="w-5 h-5" />}
           variant="amber"
         />
@@ -166,7 +178,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 uppercase tracking-wider">
             <Zap className="w-4 h-4 text-amber-400" />
-            Alokasi Biaya OPEX Bulanan
+            Alokasi Biaya OPEX &amp; Komisi Bulanan
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-amber-400">
@@ -177,11 +189,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 setStarlinkCost(settings.starlink_cost);
                 setNodePowerCost(settings.node_power_cost);
                 setOperatorSalary(settings.operator_salary);
+                setCollectorFee(settings.collector_fee_per_user ?? 5000);
+                setMarketingFee(settings.marketing_fee_monthly ?? 250000);
                 setReservePct(settings.reserve_fund_pct);
                 setShowSettingsModal(true);
               }}
               className="p-1 text-slate-400 hover:text-cyan-400 rounded-lg hover:bg-slate-800 transition-colors"
-              title="Edit Parameter OPEX"
+              title="Edit Parameter Biaya OPEX"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
@@ -204,6 +218,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             className="bg-blue-500 transition-all duration-500"
             style={{ width: `${operatorPct}%` }}
             title={`Gaji Operator: ${operatorPct}%`}
+          />
+          <div
+            className="bg-purple-500 transition-all duration-500"
+            style={{ width: `${collectorPct}%` }}
+            title={`Jasa Tagih: ${collectorPct}%`}
           />
           <div
             className="bg-emerald-500 rounded-r-full transition-all duration-500"
@@ -234,6 +253,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Gaji Operator
             </span>
             <span className="font-semibold">{formatRupiah(settings.operator_salary)}</span>
+          </div>
+          <div className="flex items-center justify-between text-slate-300">
+            <span className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              Jasa Tagih ({activeCount}x5rb)
+            </span>
+            <span className="font-semibold text-purple-300">{formatRupiah(totalJasaTagih)}</span>
+          </div>
+          <div className="flex items-center justify-between text-slate-300">
+            <span className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-pink-500" />
+              Jasa Marketing
+            </span>
+            <span className="font-semibold">{formatRupiah(totalMarketing)}</span>
           </div>
           <div className="flex items-center justify-between text-slate-300">
             <span className="flex items-center gap-1.5 text-slate-400">
@@ -380,6 +413,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   onChange={(e) => setOperatorSalary(parseFloat(e.target.value) || 0)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Jasa Tagih / User (Rp)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    required
+                    value={collectorFee}
+                    onChange={(e) => setCollectorFee(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Jasa Marketing / Bln (Rp)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50000"
+                    required
+                    value={marketingFee}
+                    onChange={(e) => setMarketingFee(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
               </div>
 
               <div>

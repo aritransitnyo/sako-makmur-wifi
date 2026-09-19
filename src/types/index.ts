@@ -4,6 +4,8 @@ export interface BusinessSettings {
   starlink_cost: number;
   node_power_cost: number;
   operator_salary: number;
+  collector_fee_per_user?: number; // Jasa Tagih per Pelanggan (e.g. 5.000)
+  marketing_fee_monthly?: number; // Jasa / Komisi Marketing Rutin
   reserve_fund_pct: number;
   admin_pin?: string;
   updated_at?: string;
@@ -15,6 +17,8 @@ export interface Investor {
   role: 'Managing Owner' | 'Investor';
   capital_invested: number;
   share_percentage: number;
+  join_date?: string; // Tanggal mulai kontrak (e.g. '2026-09-01')
+  contract_months?: number; // Durasi kontrak (default: 12 bulan)
   created_at?: string;
 }
 

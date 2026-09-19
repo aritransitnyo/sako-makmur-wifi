@@ -12,6 +12,8 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Hourglass,
+  BadgeCheck,
 } from 'lucide-react';
 import { Investor, MonthlyClosing } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -27,6 +29,27 @@ interface InvestorsViewProps {
   onOpenClosingModal: () => void;
   onOpenPrintModal: () => void;
 }
+
+export const calculateContractProgress = (joinDateStr?: string, totalMonths: number = 12) => {
+  const start = joinDateStr ? new Date(joinDateStr) : new Date('2026-09-01');
+  const now = new Date();
+
+  let monthsPassed = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (now.getDate() >= start.getDate()) {
+    monthsPassed += 1;
+  }
+  monthsPassed = Math.max(1, monthsPassed);
+  const clampedMonths = Math.min(totalMonths, monthsPassed);
+  const percent = Math.min(100, Math.round((clampedMonths / totalMonths) * 100));
+  const remaining = Math.max(0, totalMonths - monthsPassed);
+
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + totalMonths);
+  const endStr = end.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+  const startStr = start.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+
+  return { monthsPassed: clampedMonths, totalMonths, percent, remaining, startStr, endStr };
+};
 
 export const InvestorsView: React.FC<InvestorsViewProps> = ({
   investors,
@@ -46,6 +69,8 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
   const [role, setRole] = useState<'Managing Owner' | 'Investor'>('Investor');
   const [capitalInvested, setCapitalInvested] = useState(0);
   const [sharePercentage, setSharePercentage] = useState(0);
+  const [joinDate, setJoinDate] = useState('2026-09-01');
+  const [contractMonths, setContractMonths] = useState(12);
 
   const totalCapital = investors.reduce((sum, inv) => sum + inv.capital_invested, 0);
   const totalShares = investors.reduce((sum, inv) => sum + inv.share_percentage, 0);
@@ -56,6 +81,8 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
     setRole('Investor');
     setCapitalInvested(0);
     setSharePercentage(0);
+    setJoinDate(new Date().toISOString().split('T')[0]);
+    setContractMonths(12);
     setShowModal(true);
   };
 
@@ -65,6 +92,8 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
     setRole(inv.role);
     setCapitalInvested(inv.capital_invested);
     setSharePercentage(inv.share_percentage);
+    setJoinDate(inv.join_date || '2026-09-01');
+    setContractMonths(inv.contract_months || 12);
     setShowModal(true);
   };
 
@@ -79,6 +108,8 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
         role,
         capital_invested: capitalInvested,
         share_percentage: sharePercentage,
+        join_date: joinDate,
+        contract_months: contractMonths || 12,
       });
     } else {
       onAddInvestor({
@@ -86,12 +117,11 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
         role,
         capital_invested: capitalInvested,
         share_percentage: sharePercentage,
+        join_date: joinDate,
+        contract_months: contractMonths || 12,
       });
     }
 
-    setName('');
-    setCapitalInvested(0);
-    setSharePercentage(0);
     setEditingInvestor(null);
     setShowModal(false);
   };
@@ -163,11 +193,14 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
 
         {investors.map((inv) => {
           const dividend = (netProfit * inv.share_percentage) / 100;
+          const contract = calculateContractProgress(inv.join_date, inv.contract_months || 12);
+
           return (
             <div
               key={inv.id}
               className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-xs space-y-3 shadow-md"
             >
+              {/* Header Investor */}
               <div className="flex justify-between items-start">
                 <div>
                   <div className="flex items-center gap-2">
@@ -185,6 +218,33 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                   <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                     {inv.share_percentage}% Saham
                   </div>
+                </div>
+              </div>
+
+              {/* Progress Masa Kontrak Minimal 1 Tahun */}
+              <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90 space-y-2">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                    Masa Kontrak: Bulan ke-{contract.monthsPassed} dari {contract.totalMonths} Bln
+                  </span>
+                  <span className="font-black text-cyan-300">{contract.percent}%</span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${contract.percent}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between text-[10px] text-slate-400 pt-0.5">
+                  <span>Mulai: {contract.startStr}</span>
+                  <span className="text-amber-300 font-semibold">
+                    {contract.remaining > 0 ? `Sisa ${contract.remaining} bulan lagi` : 'Kontrak Selesai / Siap Perpanjang'}
+                  </span>
+                  <span>Berakhir: {contract.endStr}</span>
                 </div>
               </div>
 
@@ -311,32 +371,59 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                 </select>
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Modal Disetor (Rp)</label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  placeholder="0"
-                  value={capitalInvested || ''}
-                  onChange={(e) => setCapitalInvested(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Modal Disetor (Rp)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0"
+                    value={capitalInvested || ''}
+                    onChange={(e) => setCapitalInvested(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Porsi Saham (%)</label>
+                  <input
+                    type="number"
+                    min="0.1"
+                    max="100"
+                    step="0.1"
+                    required
+                    placeholder="20"
+                    value={sharePercentage || ''}
+                    onChange={(e) => setSharePercentage(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Porsi Saham (%)</label>
-                <input
-                  type="number"
-                  min="0.1"
-                  max="100"
-                  step="0.1"
-                  required
-                  placeholder="20"
-                  value={sharePercentage || ''}
-                  onChange={(e) => setSharePercentage(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
-                />
+              {/* Kontrak Investasi Inputs */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Tgl Mulai Kontrak</label>
+                  <input
+                    type="date"
+                    required
+                    value={joinDate}
+                    onChange={(e) => setJoinDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-medium focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Durasi Kontrak (Bulan)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    required
+                    value={contractMonths}
+                    onChange={(e) => setContractMonths(parseInt(e.target.value) || 12)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
               <div className="pt-2 flex gap-2">

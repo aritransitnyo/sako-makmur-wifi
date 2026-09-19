@@ -8,6 +8,7 @@ import {
   CapexItem,
 } from '../types';
 import { formatRupiah } from './MetricCard';
+import { calculateContractProgress } from './InvestorsView';
 
 interface PrintReportModalProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 
   const realCashIn = paidSubs.reduce((sum, s) => sum + (s.package_price || 200000), 0);
   const realOpex = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const collectorFee = (settings.collector_fee_per_user ?? 5000) * paidSubs.length;
   const reserveFund = realCashIn * (settings.reserve_fund_pct / 100);
   const netProfit = Math.max(0, realCashIn - realOpex - reserveFund);
 
@@ -94,7 +96,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
               </p>
             </div>
             <div className="text-right">
-              <span className="inline-block px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-bold border border-cyan-500/20 text-[10px]">
+              <span className="inline-block px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-300 font-bold border border-cyan-500/20 text-[10px]">
                 PERIODE: {currentMonth.toUpperCase()}
               </span>
             </div>
@@ -132,8 +134,12 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                 <span className="font-bold text-emerald-400">{formatRupiah(realCashIn)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800">
-                <span className="text-slate-400">Total Beban Operasional Riil (Buku Kas):</span>
+                <span className="text-slate-400">Total Beban Operasional Riil (Starlink, PLN, Ops):</span>
                 <span className="font-bold text-rose-300">- {formatRupiah(realOpex)}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-slate-800">
+                <span className="text-slate-400">Beban Jasa Tagih Lapangan ({paidSubs.length} x Rp 5.000):</span>
+                <span className="font-bold text-purple-300">- {formatRupiah(collectorFee)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800">
                 <span className="text-slate-400">Alokasi Dana Cadangan / Maintenance ({settings.reserve_fund_pct}%):</span>
@@ -149,7 +155,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
           {/* 3. Rekapitulasi Dividen Investor Konsorsium */}
           <div className="space-y-2">
             <h4 className="font-black text-xs text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-              3. Rekapitulasi Pembagian Dividen Pemegang Modal
+              3. Rekapitulasi Pembagian Dividen Pemegang Modal &amp; Masa Kontrak
             </h4>
             <div className="border border-slate-800 rounded-xl overflow-hidden">
               <table className="w-full text-left text-[11px]">
@@ -157,6 +163,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                   <tr>
                     <th className="p-2.5">Nama Pemegang Saham</th>
                     <th className="p-2.5">Peran</th>
+                    <th className="p-2.5">Masa Kontrak (1 Thn)</th>
                     <th className="p-2.5 text-center">Porsi (%)</th>
                     <th className="p-2.5 text-right">Hak Dividen</th>
                   </tr>
@@ -164,10 +171,14 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
                 <tbody className="divide-y divide-slate-800/80 bg-slate-950">
                   {investors.map((inv) => {
                     const dividend = (netProfit * inv.share_percentage) / 100;
+                    const contract = calculateContractProgress(inv.join_date, inv.contract_months || 12);
                     return (
                       <tr key={inv.id}>
                         <td className="p-2.5 font-bold text-slate-100">{inv.name}</td>
                         <td className="p-2.5 text-slate-400">{inv.role}</td>
+                        <td className="p-2.5 text-slate-300">
+                          Bln ke-{contract.monthsPassed}/{contract.totalMonths} ({contract.startStr} - {contract.endStr})
+                        </td>
                         <td className="p-2.5 text-center font-bold text-cyan-300">{inv.share_percentage}%</td>
                         <td className="p-2.5 text-right font-black text-emerald-400">{formatRupiah(dividend)}</td>
                       </tr>
