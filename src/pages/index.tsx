@@ -120,6 +120,7 @@ export default function Home() {
       console.error('Error loading data:', err);
     } finally {
       setLoading(false);
+      DataService.triggerCloudSync();
     }
   };
 

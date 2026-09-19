@@ -426,9 +426,27 @@ export class DataService {
     if (!this.isClient) return;
     try {
       localStorage.setItem(`smw_${key}`, JSON.stringify(value));
+      setTimeout(() => this.triggerCloudSync(), 150);
     } catch (e) {
       console.error('LocalStorage write error:', e);
     }
+  }
+
+  static triggerCloudSync(): void {
+    if (!this.isClient) return;
+    try {
+      const settings = this.getLocal('settings', DEFAULT_SETTINGS);
+      const investors = this.getLocal('investors', DEFAULT_INVESTORS);
+      const subscribers = this.getLocal('subscribers', DEFAULT_SUBSCRIBERS);
+      const expenses = this.getLocal('expenses', DEFAULT_EXPENSES);
+      const capex = this.getLocal('capex', DEFAULT_CAPEX);
+      const closings = this.getLocal('closings', DEFAULT_CLOSINGS);
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings, investors, subscribers, expenses, capex, closings }),
+      }).catch(() => {});
+    } catch {}
   }
 
   // Load Settings
