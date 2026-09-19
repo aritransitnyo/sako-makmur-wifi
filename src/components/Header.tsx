@@ -1,11 +1,13 @@
 import React from 'react';
-import { Wifi, Database, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Wifi, Database, Sparkles, Share2, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   businessName: string;
   isSupabase: boolean;
   onRefresh: () => void;
   onOpenSqlModal: () => void;
+  onOpenResetWizard: () => void;
+  onOpenShareReport: () => void;
   loading: boolean;
 }
 
@@ -14,51 +16,72 @@ export const Header: React.FC<HeaderProps> = ({
   isSupabase,
   onRefresh,
   onOpenSqlModal,
+  onOpenResetWizard,
+  onOpenShareReport,
   loading,
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
-      <div className="max-w-5xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+    <header className="sticky top-0 z-40 bg-[#070a12]/90 backdrop-blur-xl border-b border-slate-800/90 px-3.5 py-2.5">
+      <div className="max-w-md mx-auto flex items-center justify-between">
+        {/* Brand logo & title */}
+        <div className="flex items-center space-x-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-md shadow-cyan-500/25">
             <Wifi className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="font-bold text-base text-slate-100 tracking-tight leading-none">
+            <div className="flex items-center space-x-1.5">
+              <h1 className="font-black text-sm text-slate-100 tracking-tight leading-none">
                 {businessName || 'Sako Makmur WiFi'}
               </h1>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Starlink Backhaul
+              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                Live
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              PPPoE Executive & Equity Manager
+            <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
+              Starlink PPPoE Manager
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        {/* Action icons */}
+        <div className="flex items-center space-x-1">
+          {/* Mulai dari Nol Setup */}
           <button
-            onClick={onOpenSqlModal}
-            className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              isSupabase
-                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/50 hover:bg-emerald-900/50'
-                : 'bg-amber-950/40 text-amber-300 border-amber-800/50 hover:bg-amber-900/50'
-            }`}
-            title="Status Database Supabase"
+            onClick={onOpenResetWizard}
+            className="p-2 rounded-xl bg-slate-900 text-cyan-400 hover:bg-slate-800 border border-slate-800 transition-colors"
+            title="Setup Usaha / Mulai dari Nol"
           >
-            <Database className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">
-              {isSupabase ? 'Supabase Sync' : 'Local + Supabase'}
-            </span>
+            <Sparkles className="w-4 h-4" />
           </button>
 
+          {/* Laporan WA */}
+          <button
+            onClick={onOpenShareReport}
+            className="p-2 rounded-xl bg-slate-900 text-emerald-400 hover:bg-slate-800 border border-slate-800 transition-colors"
+            title="Bagikan Laporan ke WhatsApp Investor"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+
+          {/* Cloud Supabase Status */}
+          <button
+            onClick={onOpenSqlModal}
+            className={`p-2 rounded-xl text-xs font-medium border transition-all ${
+              isSupabase
+                ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/60 hover:bg-emerald-900/60'
+                : 'bg-amber-950/50 text-amber-300 border-amber-800/60 hover:bg-amber-900/60'
+            }`}
+            title="Status Database Cloud Supabase"
+          >
+            <Database className="w-4 h-4" />
+          </button>
+
+          {/* Refresh Data */}
           <button
             onClick={onRefresh}
             disabled={loading}
-            className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 border border-slate-700/60 transition-colors"
-            title="Refresh Data"
+            className="p-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 transition-colors"
+            title="Segarkan Data"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-cyan-400' : ''}`} />
           </button>

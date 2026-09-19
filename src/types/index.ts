@@ -39,6 +39,7 @@ export interface PppoePackage {
 export interface Subscriber {
   id: string;
   username_pppoe: string;
+  pppoe_password?: string;
   full_name: string;
   package_id: string;
   package_name?: string;
@@ -46,6 +47,18 @@ export interface Subscriber {
   address: string;
   phone: string;
   status: 'active' | 'suspended' | 'terminated';
+  due_date: number; // 1 - 31
+  payment_status: 'paid' | 'unpaid';
+  last_paid_at?: string;
+  created_at?: string;
+}
+
+export interface ExpenseTransaction {
+  id: string;
+  date: string;
+  category: 'Langganan Starlink' | 'Listrik & Token PLN' | 'Gaji Operator' | 'Bensin & Transport' | 'Sparepart & Konektor FO' | 'Lain-lain';
+  amount: number;
+  description: string;
   created_at?: string;
 }
 
@@ -57,4 +70,4 @@ export interface ReserveFundTransaction {
   created_at?: string;
 }
 
-export type TabType = 'dashboard' | 'subscribers' | 'capex' | 'investors' | 'simulator';
+export type TabType = 'dashboard' | 'subscribers' | 'expenses' | 'capex' | 'investors' | 'simulator';

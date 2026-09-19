@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, ShoppingBag, PieChart, Sliders } from 'lucide-react';
+import { LayoutDashboard, Users, ShoppingBag, PieChart, Wallet } from 'lucide-react';
 import { TabType } from '../types';
 
 interface BottomNavProps {
@@ -26,6 +26,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       badge: subscriberCount,
     },
     {
+      id: 'expenses',
+      label: 'Buku Kas',
+      icon: <Wallet className="w-5 h-5" />,
+    },
+    {
       id: 'capex',
       label: 'CAPEX',
       icon: <ShoppingBag className="w-5 h-5" />,
@@ -35,16 +40,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
       label: 'Investor',
       icon: <PieChart className="w-5 h-5" />,
     },
-    {
-      id: 'simulator',
-      label: 'Simulasi',
-      icon: <Sliders className="w-5 h-5" />,
-    },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#070a12]/90 backdrop-blur-xl border-t border-slate-800/80 pb-[calc(env(safe-area-inset-bottom)+0.35rem)]">
-      <div className="max-w-md mx-auto grid grid-cols-5 px-2 py-1.5">
+      <div className="max-w-md mx-auto grid grid-cols-5 px-1 py-1.5">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
@@ -54,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               className="relative flex flex-col items-center justify-center py-1 px-1 rounded-2xl transition-all duration-200 group active:scale-95"
             >
               <div
-                className={`relative px-4 py-1 rounded-full transition-all duration-200 ${
+                className={`relative px-3 sm:px-4 py-1 rounded-full transition-all duration-200 ${
                   isActive
                     ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
                     : 'text-slate-400 group-hover:text-slate-200'

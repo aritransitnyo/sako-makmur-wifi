@@ -1,5 +1,12 @@
 import { supabase } from './supabaseClient';
-import { BusinessSettings, Investor, CapexItem, PppoePackage, Subscriber } from '../types';
+import {
+  BusinessSettings,
+  Investor,
+  CapexItem,
+  PppoePackage,
+  Subscriber,
+  ExpenseTransaction,
+} from '../types';
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
   business_name: 'Sako Makmur WiFi',
@@ -127,6 +134,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
   {
     id: 'sub-1',
     username_pppoe: 'sako_rt01_budi',
+    pppoe_password: '123',
     full_name: 'Budi Kurniawan',
     package_id: 'pkg-2',
     package_name: 'Paket Keluarga 20 Mbps',
@@ -134,10 +142,14 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     address: 'RT 01 / RW 02 No. 12',
     phone: '081234567801',
     status: 'active',
+    due_date: 5,
+    payment_status: 'paid',
+    last_paid_at: new Date().toISOString(),
   },
   {
     id: 'sub-2',
     username_pppoe: 'sako_rt01_warno',
+    pppoe_password: '123',
     full_name: 'Warno Sucipto',
     package_id: 'pkg-1',
     package_name: 'Paket Hemat 10 Mbps',
@@ -145,10 +157,14 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     address: 'RT 01 / RW 02 No. 18',
     phone: '081234567802',
     status: 'active',
+    due_date: 10,
+    payment_status: 'paid',
+    last_paid_at: new Date().toISOString(),
   },
   {
     id: 'sub-3',
     username_pppoe: 'sako_rt02_warung',
+    pppoe_password: '123',
     full_name: 'Warung Bu Siti',
     package_id: 'pkg-3',
     package_name: 'Paket Usaha 30 Mbps',
@@ -156,10 +172,13 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     address: 'RT 02 / RW 02 Depan Lapangan',
     phone: '081234567803',
     status: 'active',
+    due_date: 10,
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-4',
     username_pppoe: 'sako_rt02_hendra',
+    pppoe_password: '123',
     full_name: 'Hendra Wijaya',
     package_id: 'pkg-2',
     package_name: 'Paket Keluarga 20 Mbps',
@@ -167,10 +186,13 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     address: 'RT 02 / RW 02 No. 05',
     phone: '081234567804',
     status: 'active',
+    due_date: 15,
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-5',
     username_pppoe: 'sako_rt03_agus',
+    pppoe_password: '123',
     full_name: 'Agus Purnomo',
     package_id: 'pkg-1',
     package_name: 'Paket Hemat 10 Mbps',
@@ -178,10 +200,14 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     address: 'RT 03 / RW 02 No. 09',
     phone: '081234567805',
     status: 'active',
+    due_date: 20,
+    payment_status: 'paid',
+    last_paid_at: new Date().toISOString(),
   },
   {
     id: 'sub-6',
     username_pppoe: 'sako_rt03_dedi',
+    pppoe_password: '123',
     full_name: 'Dedi Irawan',
     package_id: 'pkg-2',
     package_name: 'Paket Keluarga 20 Mbps',
@@ -189,6 +215,39 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     address: 'RT 03 / RW 02 No. 22',
     phone: '081234567806',
     status: 'suspended',
+    due_date: 5,
+    payment_status: 'unpaid',
+  },
+];
+
+export const DEFAULT_EXPENSES: ExpenseTransaction[] = [
+  {
+    id: 'exp-1',
+    date: new Date().toISOString().split('T')[0],
+    category: 'Langganan Starlink',
+    amount: 850000,
+    description: 'Tagihan bulanan Starlink Standard Kit',
+  },
+  {
+    id: 'exp-2',
+    date: new Date().toISOString().split('T')[0],
+    category: 'Listrik & Token PLN',
+    amount: 250000,
+    description: 'Token listrik PLN Node RT 01 & UPS',
+  },
+  {
+    id: 'exp-3',
+    date: new Date().toISOString().split('T')[0],
+    category: 'Gaji Operator',
+    amount: 1000000,
+    description: 'Uang operasional & maintenance jaringan',
+  },
+  {
+    id: 'exp-4',
+    date: new Date().toISOString().split('T')[0],
+    category: 'Bensin & Transport',
+    amount: 75000,
+    description: 'Patroli jalur kabel FO & cek tiang',
   },
 ];
 
@@ -222,9 +281,7 @@ export class DataService {
       if (!error && data) {
         return { data, isSupabase: true };
       }
-    } catch {
-      // Supabase table missing or connection failed
-    }
+    } catch {}
     return { data: this.getLocal('settings', DEFAULT_SETTINGS), isSupabase: false };
   }
 
@@ -291,6 +348,15 @@ export class DataService {
     return { data: this.getLocal('packages', DEFAULT_PACKAGES), isSupabase: false };
   }
 
+  static async savePackages(packages: PppoePackage[]): Promise<void> {
+    this.setLocal('packages', packages);
+    try {
+      for (const pkg of packages) {
+        await supabase.from('pppoe_packages').upsert(pkg);
+      }
+    } catch {}
+  }
+
   // Subscribers
   static async getSubscribers(): Promise<{ data: Subscriber[]; isSupabase: boolean }> {
     try {
@@ -309,6 +375,51 @@ export class DataService {
         await supabase.from('subscribers').upsert(sub);
       }
     } catch {}
+  }
+
+  // Expenses (Buku Kas Riil)
+  static async getExpenses(): Promise<{ data: ExpenseTransaction[]; isSupabase: boolean }> {
+    return { data: this.getLocal('expenses', DEFAULT_EXPENSES), isSupabase: false };
+  }
+
+  static async saveExpenses(expenses: ExpenseTransaction[]): Promise<void> {
+    this.setLocal('expenses', expenses);
+  }
+
+  // Reset to Zero (Mulai dari Nol untuk Bisnis Baru)
+  static resetToZero(businessName: string): void {
+    if (!this.isClient) return;
+    const cleanSettings: BusinessSettings = {
+      business_name: businessName || 'Nama WiFi Anda',
+      starlink_cost: 850000,
+      node_power_cost: 300000,
+      operator_salary: 1000000,
+      reserve_fund_pct: 10.0,
+    };
+    this.setLocal('settings', cleanSettings);
+    this.setLocal('investors', [
+      {
+        id: 'inv-owner',
+        name: 'Pengelola / Founder',
+        role: 'Managing Owner',
+        capital_invested: 10000000,
+        share_percentage: 100.0,
+      },
+    ]);
+    this.setLocal('subscribers', []);
+    this.setLocal('capex', []);
+    this.setLocal('expenses', []);
+  }
+
+  // Reset back to sample demo data
+  static resetToDemo(): void {
+    if (!this.isClient) return;
+    this.setLocal('settings', DEFAULT_SETTINGS);
+    this.setLocal('investors', DEFAULT_INVESTORS);
+    this.setLocal('packages', DEFAULT_PACKAGES);
+    this.setLocal('capex', DEFAULT_CAPEX);
+    this.setLocal('subscribers', DEFAULT_SUBSCRIBERS);
+    this.setLocal('expenses', DEFAULT_EXPENSES);
   }
 }
 
@@ -356,6 +467,7 @@ CREATE TABLE IF NOT EXISTS pppoe_packages (
 CREATE TABLE IF NOT EXISTS subscribers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username_pppoe TEXT UNIQUE NOT NULL,
+    pppoe_password TEXT DEFAULT '123',
     full_name TEXT NOT NULL,
     package_id UUID REFERENCES pppoe_packages(id) ON DELETE SET NULL,
     package_name TEXT,
@@ -363,11 +475,9 @@ CREATE TABLE IF NOT EXISTS subscribers (
     address TEXT,
     phone TEXT,
     status TEXT DEFAULT 'active',
+    due_date INT DEFAULT 10,
+    payment_status TEXT DEFAULT 'unpaid',
+    last_paid_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
-
--- Seed Data Awal
-INSERT INTO business_settings (business_name, starlink_cost, node_power_cost, operator_salary, reserve_fund_pct)
-VALUES ('Sako Makmur WiFi', 850000, 300000, 1000000, 10.00)
-ON CONFLICT DO NOTHING;
 `;

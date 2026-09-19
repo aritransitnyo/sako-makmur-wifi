@@ -3,10 +3,14 @@ import { Header } from '../components/Header';
 import { BottomNav } from '../components/BottomNav';
 import { DashboardView } from '../components/DashboardView';
 import { SubscribersView } from '../components/SubscribersView';
+import { ExpensesView } from '../components/ExpensesView';
 import { CapexView } from '../components/CapexView';
 import { InvestorsView } from '../components/InvestorsView';
 import { SimulatorView } from '../components/SimulatorView';
 import { SqlModal } from '../components/SqlModal';
+import { ShareReportModal } from '../components/ShareReportModal';
+import { MikrotikModal } from '../components/MikrotikModal';
+import { ResetWizardModal } from '../components/ResetWizardModal';
 import {
   DataService,
   DEFAULT_SETTINGS,
@@ -14,6 +18,7 @@ import {
   DEFAULT_PACKAGES,
   DEFAULT_CAPEX,
   DEFAULT_SUBSCRIBERS,
+  DEFAULT_EXPENSES,
 } from '../lib/dataStore';
 import {
   TabType,
@@ -22,13 +27,19 @@ import {
   CapexItem,
   PppoePackage,
   Subscriber,
+  ExpenseTransaction,
 } from '../types';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loading, setLoading] = useState(true);
   const [isSupabase, setIsSupabase] = useState(false);
+
+  // Modals
   const [showSqlModal, setShowSqlModal] = useState(false);
+  const [showShareReportModal, setShowShareReportModal] = useState(false);
+  const [showMikrotikModal, setShowMikrotikModal] = useState(false);
+  const [showResetWizardModal, setShowResetWizardModal] = useState(false);
 
   // Core Data
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
@@ -36,17 +47,19 @@ export default function Home() {
   const [packages, setPackages] = useState<PppoePackage[]>(DEFAULT_PACKAGES);
   const [capexItems, setCapexItems] = useState<CapexItem[]>(DEFAULT_CAPEX);
   const [subscribers, setSubscribers] = useState<Subscriber[]>(DEFAULT_SUBSCRIBERS);
+  const [expenses, setExpenses] = useState<ExpenseTransaction[]>(DEFAULT_EXPENSES);
 
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [resSettings, resInvestors, resCapex, resPackages, resSubs] =
+      const [resSettings, resInvestors, resCapex, resPackages, resSubs, resExpenses] =
         await Promise.all([
           DataService.getSettings(),
           DataService.getInvestors(),
           DataService.getCapex(),
           DataService.getPackages(),
           DataService.getSubscribers(),
+          DataService.getExpenses(),
         ]);
 
       setSettings(resSettings.data);
@@ -54,6 +67,7 @@ export default function Home() {
       setCapexItems(resCapex.data);
       setPackages(resPackages.data);
       setSubscribers(resSubs.data);
+      setExpenses(resExpenses.data);
 
       setIsSupabase(
         resSettings.isSupabase ||
@@ -95,10 +109,42 @@ export default function Home() {
     DataService.saveSubscribers(updated);
   };
 
+  const handleTogglePayment = (id: string, newPaymentStatus: 'paid' | 'unpaid') => {
+    const updated = subscribers.map((s) =>
+      s.id === id
+        ? {
+            ...s,
+            payment_status: newPaymentStatus,
+            last_paid_at: newPaymentStatus === 'paid' ? new Date().toISOString() : s.last_paid_at,
+          }
+        : s
+    );
+    setSubscribers(updated);
+    DataService.saveSubscribers(updated);
+  };
+
   const handleDeleteSubscriber = (id: string) => {
     const updated = subscribers.filter((s) => s.id !== id);
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
+  };
+
+  // Expenses Handlers
+  const handleAddExpense = (item: Omit<ExpenseTransaction, 'id' | 'created_at'>) => {
+    const created: ExpenseTransaction = {
+      ...item,
+      id: `exp-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    };
+    const updated = [created, ...expenses];
+    setExpenses(updated);
+    DataService.saveExpenses(updated);
+  };
+
+  const handleDeleteExpense = (id: string) => {
+    const updated = expenses.filter((e) => e.id !== id);
+    setExpenses(updated);
+    DataService.saveExpenses(updated);
   };
 
   // Capex Handlers
@@ -138,23 +184,32 @@ export default function Home() {
     DataService.saveInvestors(updated);
   };
 
-  // Net Profit for Investor View
+  // Reset Handlers
+  const handleResetToZero = (name: string) => {
+    DataService.resetToZero(name);
+    loadAllData();
+  };
+
+  const handleResetToDemo = () => {
+    DataService.resetToDemo();
+    loadAllData();
+  };
+
+  // Financial Figures
   const activeSubs = subscribers.filter((s) => s.status === 'active');
-  const totalOmzet = activeSubs.reduce(
+  const paidSubs = activeSubs.filter((s) => s.payment_status === 'paid');
+  const realCashIn = paidSubs.reduce(
     (sum, s) => sum + (s.package_price || 125000),
     0
   );
-  const reserveFund = totalOmzet * (settings.reserve_fund_pct / 100);
-  const totalOpex =
-    settings.starlink_cost +
-    settings.node_power_cost +
-    settings.operator_salary +
-    reserveFund;
-  const netProfit = Math.max(0, totalOmzet - totalOpex);
+  const realCashOut = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  const reserveFund = realCashIn * (settings.reserve_fund_pct / 100);
+  const netProfit = Math.max(0, realCashIn - realCashOut - reserveFund);
 
   return (
     <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200 relative overflow-x-hidden">
-      {/* Ambient background glows for high-end look */}
+      {/* Ambient background glows */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-96 bg-gradient-to-b from-cyan-500/10 via-blue-600/5 to-transparent blur-3xl pointer-events-none -z-10" />
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-96 bg-gradient-to-t from-violet-600/5 via-cyan-500/5 to-transparent blur-3xl pointer-events-none -z-10" />
 
@@ -164,10 +219,12 @@ export default function Home() {
         isSupabase={isSupabase}
         onRefresh={loadAllData}
         onOpenSqlModal={() => setShowSqlModal(true)}
+        onOpenResetWizard={() => setShowResetWizardModal(true)}
+        onOpenShareReport={() => setShowShareReportModal(true)}
         loading={loading}
       />
 
-      {/* Main Body Container - Mobile First Styled */}
+      {/* Main Body Container */}
       <main className="flex-1 max-w-md w-full mx-auto px-4 pt-4 pb-8">
         {activeTab === 'dashboard' && (
           <DashboardView
@@ -181,11 +238,23 @@ export default function Home() {
 
         {activeTab === 'subscribers' && (
           <SubscribersView
+            businessName={settings.business_name}
             subscribers={subscribers}
             packages={packages}
             onAddSubscriber={handleAddSubscriber}
             onToggleStatus={handleToggleSubscriberStatus}
+            onTogglePayment={handleTogglePayment}
             onDeleteSubscriber={handleDeleteSubscriber}
+            onOpenMikrotikModal={() => setShowMikrotikModal(true)}
+          />
+        )}
+
+        {activeTab === 'expenses' && (
+          <ExpensesView
+            expenses={expenses}
+            realCashIn={realCashIn}
+            onAddExpense={handleAddExpense}
+            onDeleteExpense={handleDeleteExpense}
           />
         )}
 
@@ -216,18 +285,42 @@ export default function Home() {
         )}
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation Bar */}
       <BottomNav
         activeTab={activeTab}
         onChangeTab={(tab) => setActiveTab(tab)}
-        subscriberCount={subscribers.filter((s) => s.status === 'active').length}
+        subscriberCount={subscribers.filter((s) => s.status === 'active' && s.payment_status === 'unpaid').length}
       />
 
-      {/* SQL & Cloud Sync Modal */}
+      {/* Modals */}
       <SqlModal
         isOpen={showSqlModal}
         onClose={() => setShowSqlModal(false)}
         isSupabase={isSupabase}
+      />
+
+      <ShareReportModal
+        isOpen={showShareReportModal}
+        onClose={() => setShowShareReportModal(false)}
+        settings={settings}
+        investors={investors}
+        subscribers={subscribers}
+        expenses={expenses}
+      />
+
+      <MikrotikModal
+        isOpen={showMikrotikModal}
+        onClose={() => setShowMikrotikModal(false)}
+        subscribers={subscribers}
+        packages={packages}
+      />
+
+      <ResetWizardModal
+        isOpen={showResetWizardModal}
+        onClose={() => setShowResetWizardModal(false)}
+        currentBusinessName={settings.business_name}
+        onResetToZero={handleResetToZero}
+        onResetToDemo={handleResetToDemo}
       />
     </div>
   );
