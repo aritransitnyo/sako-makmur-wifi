@@ -139,7 +139,7 @@ Tertanda, Konsorsium Sako Makmur WiFi.`;
 
         {/* Printable Paper Area */}
         <div
-          id="printable-report"
+          id="report-print-sheet"
           className="flex-1 overflow-auto bg-slate-950 p-5 rounded-2xl border border-slate-800 text-xs space-y-5 print:bg-white print:text-black print:p-0 print:border-none"
         >
           {/* Header Surat Laporan */}

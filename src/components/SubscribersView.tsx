@@ -21,6 +21,7 @@ import {
   Banknote,
   Server,
   Receipt,
+  Printer,
 } from 'lucide-react';
 import { Subscriber, PppoePackage } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -413,15 +414,15 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                     {isPaid ? 'Batal Lunas' : 'Terima Bayar'}
                   </button>
 
-                  {/* Kuitansi Resmi Pelanggan (LSM NetOS) - Jika Sudah Lunas */}
+                  {/* Tombol Cetak / PDF & Kuitansi (LSM NetOS) - Jika Sudah Lunas */}
                   {isPaid && (
                     <button
                       onClick={() => setReceiptSub({ sub, method: sub.payment_method || 'Lunas' })}
-                      className="p-1.5 rounded-lg bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-900/80 transition-all flex items-center gap-1 text-[10px] font-bold shadow-sm"
-                      title="Lihat / Cetak / Kirim Kuitansi Resmi LSM NetOS"
+                      className="px-2.5 py-1 rounded-lg bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-900/80 transition-all flex items-center gap-1.5 text-[10.5px] font-bold shadow-sm active:scale-95"
+                      title="Cetak Kuitansi / Simpan PDF (LSM NetOS)"
                     >
-                      <Receipt className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="hidden sm:inline">Kuitansi</span>
+                      <Printer className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Cetak / PDF</span>
                     </button>
                   )}
 
@@ -632,7 +633,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
             </div>
 
             <p className="text-xs text-slate-300 text-center font-medium">
-              Pilih metode pembayaran yang diterima:
+              Pilih metode (langsung buka Cetak / Kuitansi PDF):
             </p>
 
             <div className="grid grid-cols-2 gap-2.5">
@@ -642,10 +643,13 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                   setReceiptSub({ sub: { ...payingSub, payment_status: 'paid', payment_method: 'Tunai' }, method: 'Tunai' });
                   setPayingSub(null);
                 }}
-                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200"
+                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200 group"
               >
-                <Banknote className="w-5 h-5 text-emerald-400" />
-                Uang Tunai
+                <Banknote className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span>Uang Tunai</span>
+                <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                  <Printer className="w-3 h-3" /> + Cetak / PDF
+                </span>
               </button>
               <button
                 onClick={() => {
@@ -653,10 +657,13 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                   setReceiptSub({ sub: { ...payingSub, payment_status: 'paid', payment_method: 'Transfer Bank' }, method: 'Transfer Bank' });
                   setPayingSub(null);
                 }}
-                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200"
+                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200 group"
               >
-                <CreditCard className="w-5 h-5 text-cyan-400" />
-                Transfer Bank
+                <CreditCard className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                <span>Transfer Bank</span>
+                <span className="text-[10px] text-cyan-400 font-semibold flex items-center gap-1">
+                  <Printer className="w-3 h-3" /> + Cetak / PDF
+                </span>
               </button>
             </div>
 

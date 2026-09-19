@@ -6,12 +6,7 @@ import {
   Copy,
   Receipt,
   CheckCircle2,
-  Calendar,
-  User,
-  Wifi,
   Phone,
-  ArrowUpRight,
-  ShieldCheck,
 } from 'lucide-react';
 import { Subscriber } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -117,154 +112,239 @@ _Layanan Bantuan Pelanggan Limbang Mulia_`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 print:p-0 print:bg-white print:static">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition max-h-[95vh] flex flex-col shadow-2xl print:shadow-none print:border-none print:max-w-none print:w-full print:p-0 print:text-black">
-        {/* Header Modal (Hidden in Print) */}
-        <div className="flex justify-between items-center border-b border-slate-800 pb-3 print:hidden">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+      {/* Isolated Print Styles: Only #lsm-receipt-print is printed */}
+      <style jsx global>{`
+        @media print {
+          html, body {
+            background: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* Sembunyikan seluruh isi body aplikasi */
+          body * {
+            visibility: hidden !important;
+          }
+
+          /* Tampilkan HANYA struk kuitansi */
+          #lsm-receipt-print,
+          #lsm-receipt-print * {
+            visibility: visible !important;
+          }
+
+          #lsm-receipt-print {
+            position: absolute !important;
+            left: 50% !important;
+            top: 20px !important;
+            transform: translateX(-50%) !important;
+            width: 100% !important;
+            max-width: 440px !important;
+            margin: 0 auto !important;
+            padding: 24px !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 1px dashed #222222 !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+          }
+
+          #lsm-receipt-print p,
+          #lsm-receipt-print span,
+          #lsm-receipt-print h2,
+          #lsm-receipt-print div {
+            color: #000000 !important;
+            text-shadow: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition max-h-[95vh] flex flex-col shadow-2xl">
+        {/* Header Modal with Direct Action Buttons */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-sm text-slate-100">
-              Kuitansi Resmi Pelanggan (LSM NetOS)
-            </h3>
+            <Receipt className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+            <div>
+              <h3 className="font-bold text-sm text-slate-100 leading-tight">
+                Kuitansi Resmi (LSM NetOS)
+              </h3>
+              <p className="text-[11px] text-emerald-400 font-semibold">
+                {subscriber.full_name} • {formatRupiah(subscriber.package_price || 200000)}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
-          >
-            <X className="w-4 h-4" />
-          </button>
+
+          <div className="flex items-center gap-1.5 justify-end">
+            <button
+              onClick={handlePrint}
+              className="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center gap-1.5 text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition-all"
+              title="Cetak Kuitansi / Simpan PDF"
+            >
+              <Printer className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Cetak / PDF</span>
+            </button>
+
+            <button
+              onClick={handleSendWhatsApp}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1 text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
+              title="Kirim ke WhatsApp Pelanggan"
+            >
+              <Phone className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>WA</span>
+            </button>
+
+            <button
+              onClick={handleCopyWhatsApp}
+              className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 active:scale-95 transition-all"
+              title="Salin Format WhatsApp"
+            >
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            </button>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800"
+              title="Tutup"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Scrollable Receipt Body */}
-        <div className="flex-1 overflow-y-auto space-y-3 print:overflow-visible">
-          {/* Paper Struk Frame */}
+        <div className="flex-1 overflow-y-auto space-y-3">
+          {/* Paper Struk Frame (Targeted by Print CSS) */}
           <div
-            id="receipt-print-area"
-            className="bg-slate-950 border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-3.5 relative overflow-hidden shadow-inner print:bg-white print:border print:border-black print:rounded-none print:p-6 print:text-black"
+            id="lsm-receipt-print"
+            className="bg-slate-950 border border-slate-800/90 rounded-2xl p-4 sm:p-5 space-y-3.5 relative overflow-hidden shadow-inner text-slate-200"
           >
             {/* Kop Surat Resmi */}
-            <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-800 print:border-black">
-              <span className="text-[10px] font-black tracking-widest uppercase text-cyan-400 print:text-black block">
+            <div className="text-center space-y-1 pb-3 border-b border-dashed border-slate-800">
+              <span className="text-[10px] font-black tracking-widest uppercase text-cyan-400 block">
                 PROGRAM LAYANAN INTERNET
               </span>
-              <h2 className="text-sm font-black text-slate-100 tracking-tight print:text-black leading-tight">
+              <h2 className="text-sm font-black text-slate-100 tracking-tight leading-tight">
                 LIMBANGMULIA SEJAHTERA MANDIRI
               </h2>
-              <p className="text-[11px] font-bold text-emerald-400 print:text-black tracking-wide">
+              <p className="text-[11px] font-bold text-emerald-400 tracking-wide">
                 (LSM NetOS)
               </p>
-              <p className="text-[9.5px] text-slate-400 print:text-gray-700">
+              <p className="text-[9.5px] text-slate-400">
                 Bukti Sah Pembayaran Iuran Internet Warga
               </p>
             </div>
 
             {/* Nomor & Waktu */}
-            <div className="flex justify-between items-center text-[10.5px] text-slate-400 print:text-gray-800 pt-1">
+            <div className="flex justify-between items-center text-[10.5px] text-slate-400 pt-1">
               <div>
-                <span className="text-[9px] uppercase tracking-wider text-slate-500 print:text-gray-600 block">
+                <span className="text-[9px] uppercase tracking-wider text-slate-500 block">
                   No. Kuitansi
                 </span>
-                <span className="font-mono font-bold text-slate-200 print:text-black">
+                <span className="font-mono font-bold text-slate-200">
                   {receiptNo}
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[9px] uppercase tracking-wider text-slate-500 print:text-gray-600 block">
+                <span className="text-[9px] uppercase tracking-wider text-slate-500 block">
                   Waktu Bayar
                 </span>
-                <span className="font-semibold text-slate-300 print:text-black">
+                <span className="font-semibold text-slate-300">
                   {formattedDate}
                 </span>
               </div>
             </div>
 
             {/* Data Pelanggan */}
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-1.5 print:bg-gray-50 print:border-gray-300">
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 space-y-1.5">
               <div className="flex justify-between items-start text-xs">
-                <span className="text-slate-400 print:text-gray-600 text-[11px]">Pelanggan:</span>
-                <span className="font-bold text-slate-100 print:text-black text-right">
+                <span className="text-slate-400 text-[11px]">Pelanggan:</span>
+                <span className="font-bold text-slate-100 text-right">
                   {subscriber.full_name}
                 </span>
               </div>
               <div className="flex justify-between items-center text-[11px]">
-                <span className="text-slate-400 print:text-gray-600">ID PPPoE:</span>
-                <span className="font-mono text-cyan-400 print:text-black font-semibold">
+                <span className="text-slate-400">ID PPPoE:</span>
+                <span className="font-mono text-cyan-400 font-semibold">
                   {subscriber.username_pppoe}
                 </span>
               </div>
               {subscriber.address && (
                 <div className="flex justify-between items-start text-[10.5px]">
-                  <span className="text-slate-400 print:text-gray-600">Alamat:</span>
-                  <span className="text-slate-300 print:text-black text-right max-w-[65%] truncate">
+                  <span className="text-slate-400">Alamat:</span>
+                  <span className="text-slate-300 text-right max-w-[65%] truncate">
                     {subscriber.address}
                   </span>
                 </div>
               )}
               <div className="flex justify-between items-center text-[10.5px]">
-                <span className="text-slate-400 print:text-gray-600">Metode:</span>
-                <span className="font-bold text-slate-300 print:text-black">
+                <span className="text-slate-400">Metode:</span>
+                <span className="font-bold text-slate-300">
                   {paymentMethod}
                 </span>
               </div>
             </div>
 
             {/* Rincian Tagihan & Nominal */}
-            <div className="space-y-2 pt-1 border-t border-dashed border-slate-800 print:border-black">
+            <div className="space-y-2 pt-1 border-t border-dashed border-slate-800">
               <div className="flex justify-between items-center text-xs">
                 <div>
-                  <p className="font-bold text-slate-200 print:text-black">
+                  <p className="font-bold text-slate-200">
                     {subscriber.package_name || 'Paket Internet'}
                   </p>
-                  <p className="text-[10px] text-slate-400 print:text-gray-600">
+                  <p className="text-[10px] text-slate-400">
                     Periode: {currentMonthStr}
                   </p>
                 </div>
-                <p className="text-sm font-black text-slate-100 print:text-black">
+                <p className="text-sm font-black text-slate-100">
                   {formatRupiah(subscriber.package_price || 200000)}
                 </p>
               </div>
 
               {/* Stempel / Badge Lunas */}
-              <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between print:bg-gray-100 print:border-black">
+              <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 print:text-black" />
-                  <span className="text-xs font-black tracking-wider text-emerald-300 print:text-black uppercase">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-black tracking-wider text-emerald-300 uppercase">
                     LUNAS / VERIFIED
                   </span>
                 </div>
-                <span className="text-base font-black text-emerald-400 print:text-black">
+                <span className="text-base font-black text-emerald-400">
                   {formatRupiah(subscriber.package_price || 200000)}
                 </span>
               </div>
             </div>
 
             {/* Masa Aktif Layanan */}
-            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[10.5px] text-slate-300 print:text-black print:bg-white space-y-0.5">
-              <span className="text-slate-400 print:text-gray-600 block text-[9.5px] uppercase font-semibold">
+            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[10.5px] text-slate-300 space-y-0.5">
+              <span className="text-slate-400 block text-[9.5px] uppercase font-semibold">
                 Masa Aktif Layanan:
               </span>
-              <p className="font-bold text-cyan-300 print:text-black">
+              <p className="font-bold text-cyan-300">
                 Internet Aktif Normal s/d {activeUntilStr}
               </p>
             </div>
 
             {/* Footer Struk */}
-            <div className="text-center pt-2 border-t border-dashed border-slate-800 print:border-black space-y-1 text-[9.5px] text-slate-400 print:text-gray-700">
-              <p className="font-semibold text-slate-300 print:text-black">
+            <div className="text-center pt-2 border-t border-dashed border-slate-800 space-y-1 text-[9.5px] text-slate-400">
+              <p className="font-semibold text-slate-300">
                 Pengelola Operasional: Tri Wahyono (LSM NetOS)
               </p>
               <p className="leading-relaxed">
                 Simpan kuitansi digital ini sebagai bukti sah pembayaran Anda.
               </p>
-              <p className="text-[8.5px] text-slate-500 print:text-gray-500 font-mono">
+              <p className="text-[8.5px] text-slate-500 font-mono">
                 Diterbitkan otomatis via LSM NetOS Gateway • Layanan Komunitas Desa
               </p>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons (Hidden in Print) */}
-        <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap text-xs print:hidden">
+        {/* Bottom Action Footer */}
+        <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2 text-xs">
           <button
             onClick={onClose}
             className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-colors"
@@ -272,31 +352,20 @@ _Layanan Bantuan Pelanggan Limbang Mulia_`;
             Tutup
           </button>
 
-          <div className="flex items-center gap-1.5 flex-wrap justify-end">
-            <button
-              onClick={handleCopyWhatsApp}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold flex items-center gap-1 border border-emerald-500/30 transition-all active:scale-95"
-              title="Salin Teks Kuitansi WhatsApp"
-            >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Tersalin!' : 'Salin WA'}</span>
-            </button>
-
+          <div className="flex items-center gap-2">
             <button
               onClick={handleSendWhatsApp}
-              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1 shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
-              title="Kirim Langsung ke WhatsApp Pelanggan"
+              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition-all"
             >
               <Phone className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Kirim WA</span>
+              <span>Kirim ke WA</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center gap-1 shadow-lg shadow-cyan-500/25 transition-all active:scale-95"
-              title="Cetak Struk Mini / Simpan PDF"
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Cetak / PDF</span>
             </button>
           </div>
