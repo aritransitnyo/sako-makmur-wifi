@@ -188,21 +188,12 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     return clean;
   };
 
-  const sendReceiptWhatsApp = (sub: Subscriber) => {
-    const cleanPhone = getCleanPhone(sub.phone);
-    if (!cleanPhone) return;
-    const currentMonth = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
-    const methodStr = sub.payment_method ? ` (${sub.payment_method})` : '';
-    const text = `*KUITANSI PEMBAYARAN WIFI - ${businessName.toUpperCase()}*\n\nHalo Bapak/Ibu *${sub.full_name}*,\n\nTerima kasih! Pembayaran iuran WiFi Anda untuk periode *${currentMonth}* sebesar *${formatRupiah(sub.package_price || 200000)}* telah KAMI TERIMA${methodStr} (LUNAS ✅).\n\nUsername PPPoE: *${sub.username_pppoe}*\nPaket: *${sub.package_name}*\n\nSelamat menikmati koneksi internet cepat kami. Jika ada kendala, hubungi kami di nomor ini. 🙏`;
-    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`, '_blank');
-  };
-
   const sendReminderWhatsApp = (sub: Subscriber) => {
     const cleanPhone = getCleanPhone(sub.phone);
     if (!cleanPhone) return;
     const currentMonth = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
-    const text = `*PEMBERITAHUAN TAGIHAN WIFI - ${businessName.toUpperCase()}*\n\nHalo Bapak/Ibu *${sub.full_name}*,\n\nMengingatkan tagihan WiFi periode *${currentMonth}* sebesar *${formatRupiah(sub.package_price || 200000)}* jatuh tempo pada *tanggal ${sub.due_date || 10}*.\n\nMohon melakukan pembayaran via transfer atau konfirmasi jika sudah membayar agar koneksi tetap lancar. Terima kasih! 🙏`;
-    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`, '_blank');
+    const text = `*PEMBERITAHUAN TAGIHAN INTERNET - LSM NetOS*\n\nHalo Bapak/Ibu *${sub.full_name}*,\n\nMengingatkan iuran internet periode *${currentMonth}* sebesar *${formatRupiah(sub.package_price || 200000)}* jatuh tempo pada *tanggal ${sub.due_date || 10}*.\n\nMohon melakukan pembayaran agar koneksi tetap aktif dan lancar. Terima kasih! 🙏`;
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   return (

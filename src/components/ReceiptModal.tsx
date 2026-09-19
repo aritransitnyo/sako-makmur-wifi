@@ -84,8 +84,7 @@ Metode Bayar : *${paymentMethod}*
 Terima kasih atas pembayaran iuran internet Anda tepat waktu.
 Internet Anda aktif lancar dan stabil.
 
-_LSM NetOS • Pengelola: Tri Wahyono_
-_Layanan Bantuan Pelanggan Limbang Mulia_`;
+_LSM NetOS Gateway • Layanan Komunitas Desa_`;
   };
 
   const handleCopyWhatsApp = () => {
@@ -94,16 +93,22 @@ _Layanan Bantuan Pelanggan Limbang Mulia_`;
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const [sendingWA, setSendingWA] = useState(false);
+
   const handleSendWhatsApp = () => {
+    if (sendingWA) return;
+    setSendingWA(true);
+    setTimeout(() => setSendingWA(false), 2000);
+
     let clean = (subscriber.phone || '').replace(/[^0-9]/g, '');
     if (clean.startsWith('0')) {
       clean = '62' + clean.slice(1);
     }
     const msg = encodeURIComponent(getWhatsAppMessage());
     if (clean) {
-      window.open(`https://api.whatsapp.com/send?phone=${clean}&text=${msg}`, '_blank');
+      window.open(`https://wa.me/${clean}?text=${msg}`, '_blank');
     } else {
-      window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+      window.open(`https://wa.me/?text=${msg}`, '_blank');
     }
   };
 
@@ -330,14 +335,14 @@ _Layanan Bantuan Pelanggan Limbang Mulia_`;
 
             {/* Footer Struk */}
             <div className="text-center pt-2 border-t border-dashed border-slate-800 space-y-1 text-[9.5px] text-slate-400">
-              <p className="font-semibold text-slate-300">
-                Pengelola Operasional: Tri Wahyono (LSM NetOS)
+              <p className="font-bold text-slate-300">
+                Layanan Internet Desa LSM NetOS
               </p>
               <p className="leading-relaxed">
                 Simpan kuitansi digital ini sebagai bukti sah pembayaran Anda.
               </p>
               <p className="text-[8.5px] text-slate-500 font-mono">
-                Diterbitkan otomatis via LSM NetOS Gateway • Layanan Komunitas Desa
+                Diterbitkan otomatis via LSM NetOS Gateway • Layanan Pelanggan Warga
               </p>
             </div>
           </div>
