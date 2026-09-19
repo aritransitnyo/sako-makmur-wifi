@@ -394,7 +394,7 @@ export default function Home() {
   };
 
   // Unified Financial Calculations
-  const fin = calculateFinancials(subscribers, settings, investors, capexItems);
+  const fin = calculateFinancials(subscribers, settings, investors, capexItems, expenses, closings);
   const realCashIn = fin.totalOmzet;
   const netProfit = fin.netProfit;
   const totalCapital = fin.totalCapital;
@@ -439,6 +439,8 @@ export default function Home() {
             investors={investors}
             subscribers={subscribers}
             capexItems={capexItems}
+            expenses={expenses}
+            closings={closings}
             onNavigateTab={(tab) => setActiveTab(tab)}
             onUpdateSettings={handleUpdateSettings}
             onOpenNetworkModal={() => setShowMikrotikModal(true)}
@@ -467,6 +469,9 @@ export default function Home() {
             expenses={expenses}
             realCashIn={realCashIn}
             sisaKasModal={sisaKasModal}
+            cumulativeReserveFund={fin.cumulativeReserveFund}
+            reserveFundSpent={fin.reserveFundSpent}
+            totalReserveAllocated={fin.totalReserveAllocated}
             onAddExpense={handleAddExpense}
             onUpdateExpense={handleUpdateExpense}
             onDeleteExpense={handleDeleteExpense}

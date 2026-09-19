@@ -1,4 +1,4 @@
-import { BusinessSettings, Investor, Subscriber, CapexItem, ExpenseTransaction } from '../types';
+import { BusinessSettings, Investor, Subscriber, CapexItem, ExpenseTransaction, MonthlyClosing } from '../types';
 
 export interface FinancialSummary {
   activeSubs: Subscriber[];
@@ -21,7 +21,10 @@ export interface FinancialSummary {
   totalCollectorFee: number;
   marketingFee: number;
   reserveFundPct: number;
-  reserveFundAmount: number;
+  reserveFundAmount: number; // Alokasi bulan berjalan (10%)
+  cumulativeReserveFund: number; // Total saldo tabungan cadangan terkini (akumulasi)
+  reserveFundSpent: number; // Total belanja darurat/maintenance yang ditarik dari cadangan
+  totalReserveAllocated: number; // Total akumulasi alokasi 10% (historis + berjalan)
   totalOpex: number;
 
   // Profit
@@ -52,7 +55,9 @@ export function calculateFinancials(
   subscribers: Subscriber[] = [],
   settings: Partial<BusinessSettings> = {},
   investors: Investor[] = [],
-  capexItems: CapexItem[] = []
+  capexItems: CapexItem[] = [],
+  expenses: ExpenseTransaction[] = [],
+  closings: MonthlyClosing[] = []
 ): FinancialSummary {
   // Safe defaults
   const starlinkCost = Number(settings.starlink_cost ?? 850000);
@@ -88,10 +93,27 @@ export function calculateFinancials(
   // Collector fee is earned per paid user
   const totalCollectorFee = paidCount * collectorFeePerUser;
 
-  // Reserve fund (10% of real collected cash in)
+  // Reserve fund (10% of real collected cash in for current period)
   const reserveFundAmount = Math.round(totalOmzet * (reserveFundPct / 100));
 
-  // Total monthly OPEX
+  // Cumulative reserve fund calculations:
+  // 1. From historical monthly closings:
+  const historicalReserveAllocated = closings.reduce(
+    (sum, c) => sum + (Number(c.reserve_fund_amount) || 0),
+    0
+  );
+  // Total ever allocated to reserve fund
+  const totalReserveAllocated = historicalReserveAllocated + reserveFundAmount;
+
+  // 2. Total maintenance spent drawn from reserve fund
+  const reserveFundSpent = expenses
+    .filter((e) => e.fund_source === 'Kas Dana Cadangan (Maintenance)')
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+  // 3. Current net cumulative reserve fund balance in savings account
+  const cumulativeReserveFund = Math.max(0, totalReserveAllocated - reserveFundSpent);
+
+  // Total monthly OPEX (routine monthly running cost + 10% reserve transfer)
   const totalOpex =
     starlinkCost +
     nodePowerCost +
@@ -168,6 +190,9 @@ export function calculateFinancials(
     marketingFee,
     reserveFundPct,
     reserveFundAmount,
+    cumulativeReserveFund,
+    reserveFundSpent,
+    totalReserveAllocated,
     totalOpex,
     netProfit,
     profitMargin,

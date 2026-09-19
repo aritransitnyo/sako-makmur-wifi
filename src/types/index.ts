@@ -68,7 +68,7 @@ export interface ExpenseTransaction {
   category: string;
   amount: number;
   description: string;
-  fund_source?: 'Kas Operasional' | 'Kas Sisa Modal' | 'Dana Talangan Pengelola';
+  fund_source?: 'Kas Operasional' | 'Kas Sisa Modal' | 'Kas Dana Cadangan (Maintenance)' | 'Dana Talangan Pengelola';
   receipt_url?: string;
   created_at?: string;
 }

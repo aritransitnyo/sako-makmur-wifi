@@ -43,6 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .select('*');
 
     const capex = capexData && capexData.length > 0 ? capexData : fallbackState.capex;
+    const closings = fallbackState.closings || [];
+    const expenses = fallbackState.expenses || [];
 
     // Calculations
     const activeSubs = subscribers.filter((s: any) => s.status === 'active');
@@ -58,6 +60,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const marketingFee = Number(settings.marketing_fee_monthly) || 250000;
     const reserveFundPct = Number(settings.reserve_fund_pct) || 10.0;
     const reserveFundAmount = Math.round(totalOmzet * (reserveFundPct / 100));
+
+    // Cumulative reserve fund calculations
+    const historicalReserve = closings.reduce(
+      (sum: number, c: any) => sum + (Number(c.reserve_fund_amount) || 0),
+      0
+    );
+    const totalReserveAllocated = historicalReserve + reserveFundAmount;
+    const reserveFundSpent = expenses
+      .filter((e: any) => e.fund_source === 'Kas Dana Cadangan (Maintenance)')
+      .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+    const cumulativeReserveFund = Math.max(0, totalReserveAllocated - reserveFundSpent);
 
     const totalOpex =
       Number(settings.starlink_cost) +
@@ -97,6 +110,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       marketing_fee: marketingFee,
       reserve_fund_pct: reserveFundPct,
       reserve_fund_amount: reserveFundAmount,
+      cumulative_reserve_fund: cumulativeReserveFund,
+      reserve_fund_spent: reserveFundSpent,
+      total_reserve_allocated: totalReserveAllocated,
       total_opex: totalOpex,
       net_profit: netProfit,
       investors: investorDividends,

@@ -12,6 +12,9 @@ import {
   Layers,
   Banknote,
   PiggyBank,
+  ShieldCheck,
+  Shield,
+  Wrench,
 } from 'lucide-react';
 import { ExpenseTransaction } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -21,6 +24,9 @@ interface ExpensesViewProps {
   expenses: ExpenseTransaction[];
   realCashIn: number;
   sisaKasModal: number;
+  cumulativeReserveFund?: number;
+  reserveFundSpent?: number;
+  totalReserveAllocated?: number;
   onAddExpense: (item: Omit<ExpenseTransaction, 'id' | 'created_at'>) => void;
   onUpdateExpense: (item: ExpenseTransaction) => void;
   onDeleteExpense: (id: string) => void;
@@ -30,6 +36,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   expenses,
   realCashIn,
   sisaKasModal,
+  cumulativeReserveFund = 0,
+  reserveFundSpent = 0,
+  totalReserveAllocated = 0,
   onAddExpense,
   onUpdateExpense,
   onDeleteExpense,
@@ -44,7 +53,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [fundSource, setFundSource] = useState<
-    'Kas Operasional' | 'Kas Sisa Modal' | 'Dana Talangan Pengelola'
+    'Kas Operasional' | 'Kas Sisa Modal' | 'Kas Dana Cadangan (Maintenance)' | 'Dana Talangan Pengelola'
   >('Kas Operasional');
   const [receiptUrl, setReceiptUrl] = useState('');
 
@@ -113,20 +122,22 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     if (cat.includes('Gaji') || cat.includes('Operator')) return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
     if (cat.includes('Bensin') || cat.includes('Transport')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     if (cat.includes('Sparepart') || cat.includes('FO')) return 'bg-violet-500/10 text-violet-400 border-violet-500/20';
+    if (cat.includes('Darurat') || cat.includes('Force')) return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+    if (cat.includes('ONT') || cat.includes('Router')) return 'bg-teal-500/10 text-teal-400 border-teal-500/20';
     return 'bg-slate-800 text-slate-300 border-slate-700';
   };
 
   return (
     <div className="space-y-4 pb-24 page-transition">
-      {/* 2 Kantong Kas: Sisa Modal vs Kas Operasional */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* 3 Kantong Kas: Operasional vs Sisa Modal vs Dana Cadangan (Tabungan) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {/* Kantong 1: Kas Operasional */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/25 shadow-lg space-y-1">
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/25 shadow-lg space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
             <Banknote className="w-3.5 h-3.5" /> Kas Operasional
           </p>
           <p
-            className={`text-lg font-black mt-1 ${
+            className={`text-base sm:text-lg font-black mt-1 ${
               netKasOperasional >= 0 ? 'text-emerald-400' : 'text-rose-400'
             }`}
           >
@@ -138,15 +149,28 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         </div>
 
         {/* Kantong 2: Kas Sisa Modal */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-violet-950/40 via-slate-900 to-slate-900 border border-violet-500/25 shadow-lg space-y-1">
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-violet-950/40 via-slate-900 to-slate-900 border border-violet-500/25 shadow-lg space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1">
             <PiggyBank className="w-3.5 h-3.5" /> Kas Sisa Modal
           </p>
-          <p className="text-lg font-black text-violet-300 mt-1">
+          <p className="text-base sm:text-lg font-black text-violet-300 mt-1">
             {formatRupiah(sisaKasModal)}
           </p>
           <p className="text-[10px] text-slate-400">
             Kas Belanja Alat (CAPEX)
+          </p>
+        </div>
+
+        {/* Kantong 3: Kas Dana Cadangan (Tabungan Jaringan) */}
+        <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-500/25 shadow-lg space-y-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5" /> Tabungan Cadangan
+          </p>
+          <p className="text-base sm:text-lg font-black text-cyan-300 mt-1">
+            {formatRupiah(cumulativeReserveFund)}
+          </p>
+          <p className="text-[10px] text-slate-400">
+            Alokasi: {formatRupiah(totalReserveAllocated)} • Pakai: {formatRupiah(reserveFundSpent)}
           </p>
         </div>
       </div>
@@ -186,7 +210,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                     {exp.category}
                   </span>
                   {exp.fund_source && (
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                    <span
+                      className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold border ${
+                        exp.fund_source === 'Kas Dana Cadangan (Maintenance)'
+                          ? 'bg-cyan-950/80 text-cyan-300 border-cyan-600/50'
+                          : exp.fund_source === 'Kas Sisa Modal'
+                          ? 'bg-violet-950/80 text-violet-300 border-violet-600/50'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                    >
+                      {exp.fund_source === 'Kas Dana Cadangan (Maintenance)' && (
+                        <Shield className="w-2.5 h-2.5 inline mr-1 text-cyan-400" />
+                      )}
                       {exp.fund_source}
                     </span>
                   )}
@@ -283,7 +318,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   <option value="Listrik & Token PLN">Listrik &amp; Token PLN</option>
                   <option value="Gaji Operator">Gaji Operator &amp; Helpdesk</option>
                   <option value="Bensin & Transport">Bensin &amp; Transport Patroli</option>
-                  <option value="Sparepart & Konektor FO">Sparepart &amp; Konektor FO</option>
+                  <option value="Sparepart & Konektor FO">Sparepart &amp; Konektor FO Siaga</option>
+                  <option value="Perbaikan Darurat / Force Majeure">Perbaikan Darurat / Force Majeure</option>
+                  <option value="Ganti Router ONT Pelanggan">Ganti Router ONT Pelanggan</option>
                   <option value="Lain-lain">Lain-lain / Konsumsi / Lakban</option>
                 </select>
               </div>
@@ -298,6 +335,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 >
                   <option value="Kas Operasional">Kas Operasional (Iuran Pelanggan)</option>
                   <option value="Kas Sisa Modal">Kas Sisa Modal Investor (CAPEX)</option>
+                  <option value="Kas Dana Cadangan (Maintenance)">Kas Dana Cadangan (Tabungan Jaringan / Maintenance)</option>
                   <option value="Dana Talangan Pengelola">Dana Talangan Pengelola</option>
                 </select>
               </div>

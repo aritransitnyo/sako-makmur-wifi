@@ -13,7 +13,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { MetricCard, formatRupiah } from './MetricCard';
-import { BusinessSettings, Investor, Subscriber, CapexItem } from '../types';
+import { BusinessSettings, Investor, Subscriber, CapexItem, ExpenseTransaction, MonthlyClosing } from '../types';
 import { calculateFinancials } from '../lib/financialCalculations';
 
 interface DashboardViewProps {
@@ -21,6 +21,8 @@ interface DashboardViewProps {
   investors: Investor[];
   subscribers: Subscriber[];
   capexItems: CapexItem[];
+  expenses?: ExpenseTransaction[];
+  closings?: MonthlyClosing[];
   onNavigateTab: (tab: any) => void;
   onUpdateSettings: (settings: BusinessSettings) => void;
   onOpenNetworkModal?: () => void;
@@ -31,6 +33,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   investors,
   subscribers,
   capexItems,
+  expenses = [],
+  closings = [],
   onNavigateTab,
   onUpdateSettings,
   onOpenNetworkModal,
@@ -44,7 +48,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [reservePct, setReservePct] = useState(settings.reserve_fund_pct);
 
   // Unified financial calculations
-  const fin = calculateFinancials(subscribers, settings, investors, capexItems);
+  const fin = calculateFinancials(subscribers, settings, investors, capexItems, expenses, closings);
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -246,7 +250,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
               Dana Cadangan ({fin.reserveFundPct}%)
             </span>
-            <span className="font-semibold text-emerald-400">{formatRupiah(fin.reserveFundAmount)}</span>
+            <div className="text-right">
+              <span className="font-semibold text-emerald-400">{formatRupiah(fin.reserveFundAmount)}</span>
+              {fin.cumulativeReserveFund > 0 && (
+                <p className="text-[10px] text-cyan-400 font-medium">
+                  Saldo: {formatRupiah(fin.cumulativeReserveFund)}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
