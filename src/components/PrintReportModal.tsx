@@ -254,14 +254,14 @@ Tertanda, Konsorsium Sako Makmur WiFi.`;
             <div>
               <p>Mengetahui &amp; Mengesahkan,</p>
               <p className="font-bold text-slate-200 mt-12 underline">
-                Ahmad Fauzi
+                Tri Wahyono
               </p>
               <p className="text-[10px]">Managing Owner / Pengelola</p>
             </div>
             <div>
               <p>Perwakilan Pemodal,</p>
               <p className="font-bold text-slate-200 mt-12 underline">
-                Tri Wahyono / Anwar Khadafi
+                Ahmad Fauzi / Anwar Khadafi
               </p>
               <p className="text-[10px]">Investor Konsorsium</p>
             </div>
