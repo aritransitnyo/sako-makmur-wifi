@@ -288,7 +288,7 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
         </div>
 
         <p className="text-[11px] text-slate-300 leading-relaxed">
-          Modal disetor para mitra telah dibelanjakan menjadi aset produktif fisik (Starlink Kit, Core Router MikroTik, OLT HiOSO, Kabel Dropcore FO, Tiang, dan UPS). Seluruh aset fisik adalah milik bersama konsorsium secara proporsional:
+          Modal disetor para mitra telah dibelanjakan menjadi aset produktif fisik (Starlink Kit, Core Router MikroTik, OLT HiOSO, Kabel Dropcore FO, dan UPS). Seluruh aset fisik adalah milik bersama konsorsium secara proporsional:
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
@@ -407,7 +407,7 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                     <Layers className="w-3 h-3 text-cyan-400" /> Aset Penjamin
                   </p>
                   <p className="font-black text-xs text-cyan-300">{formatRupiah(assetShare)}</p>
-                  <p className="text-[9.5px] text-slate-500">Starlink, FO, OLT, Tiang</p>
+                  <p className="text-[9.5px] text-slate-500">Starlink, FO, OLT, UPS</p>
                 </div>
               </div>
 
