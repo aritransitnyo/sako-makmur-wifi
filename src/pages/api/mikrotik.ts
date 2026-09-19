@@ -19,8 +19,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 // Bridge URL for Vercel deployment (VPS HTTP-to-TCP proxy)
-const BRIDGE_URL = process.env.MIKROTIK_BRIDGE_URL || '';
-const BRIDGE_KEY = process.env.MIKROTIK_BRIDGE_KEY || '';
+const BRIDGE_URL = process.env.MIKROTIK_BRIDGE_URL || 'http://49.12.82.34:10887';
+const BRIDGE_KEY = process.env.MIKROTIK_BRIDGE_KEY || '3oR6TBDJQqTt2iykOysTHBWsAQh69TlbCXT07vndbCE';
 
 // Check if we should use direct TCP or HTTP bridge
 const USE_BRIDGE = !!BRIDGE_URL;
