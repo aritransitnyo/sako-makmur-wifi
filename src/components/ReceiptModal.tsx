@@ -37,9 +37,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ];
   const currentMonthStr = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
-  const nextMonthIdx = (now.getMonth() + 1) % 12;
-  const nextMonthYear = nextMonthIdx === 0 ? now.getFullYear() + 1 : now.getFullYear();
-  const activeUntilStr = `Tgl ${subscriber.due_date || 10} ${monthNames[nextMonthIdx]} ${nextMonthYear}`;
 
   const receiptNo = `#LSM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${(
     subscriber.id || '001'
@@ -58,7 +55,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       minute: '2-digit',
     }) + ' WIB';
 
-  // Format WhatsApp Text
+  // Format WhatsApp Text (Opsi 2: Berdasarkan Periode Bulan Penuh Tanpa Tanggal Ambigu)
   const getWhatsAppMessage = () => {
     return `🧾 *KUITANSI PEMBAYARAN INTERNET RESMI*
 *PROGRAM LAYANAN INTERNET*
@@ -75,14 +72,14 @@ Metode Bayar : *${paymentMethod}*
 
 📦 *RINCIAN IURAN*
 • Paket      : *${subscriber.package_name || '5 Mbps'}*
-• Periode    : *${currentMonthStr}*
+• Periode    : *Bulan ${currentMonthStr} (1 Bulan)*
 • Nominal    : *${formatRupiah(subscriber.package_price || 200000)}*
 • Status     : ✅ *LUNAS (VERIFIED)*
 
-📅 *MASA AKTIF LAYANAN*
-• Aktif s/d  : *${activeUntilStr}*
+📶 *STATUS LAYANAN*
+• Koneksi    : ✅ *AKTIF NORMAL*
 ━━━━━━━━━━━━━━━━━━━━
-Terima kasih atas pembayaran iuran internet Anda tepat waktu.
+Terima kasih atas pembayaran iuran internet Anda.
 Internet Anda aktif lancar dan stabil.
 
 _LSM NetOS Gateway • Layanan Komunitas Desa_`;
@@ -322,13 +319,14 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
               </div>
             </div>
 
-            {/* Masa Aktif Layanan */}
+            {/* Status Layanan (Opsi 2: 1 Bulan Penuh Bersih) */}
             <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-[10.5px] text-slate-300 space-y-0.5">
               <span className="text-slate-400 block text-[9.5px] uppercase font-semibold">
-                Masa Aktif Layanan:
+                Status Layanan:
               </span>
-              <p className="font-bold text-cyan-300">
-                Internet Aktif Normal s/d {activeUntilStr}
+              <p className="font-bold text-emerald-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                Koneksi Internet Aktif Normal (1 Bulan Penuh)
               </p>
             </div>
 
