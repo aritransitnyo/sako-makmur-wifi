@@ -17,6 +17,12 @@ import {
   Layers,
   ShieldCheck,
   FileText,
+  DollarSign,
+  TrendingUp,
+  Wallet,
+  Zap,
+  ArrowUpRight,
+  Sparkles,
 } from 'lucide-react';
 import { Investor, MonthlyClosing } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -87,6 +93,42 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
   const totalCapital = investors.reduce((sum, inv) => sum + inv.capital_invested, 0);
   const totalShares = investors.reduce((sum, inv) => sum + inv.share_percentage, 0);
 
+  // Helper to calculate total historical dividends from closed books
+  const getInvestorHistoricalDividends = (investorId: string, investorName: string) => {
+    let sum = 0;
+    closings.forEach((c) => {
+      if (Array.isArray(c.investor_dividends)) {
+        const item = c.investor_dividends.find(
+          (d) => d.investor_id === investorId || d.name?.toLowerCase() === investorName?.toLowerCase()
+        );
+        if (item) {
+          sum += Number(item.dividend_amount) || 0;
+        }
+      }
+    });
+    return sum;
+  };
+
+  const totalHistoricalDividends = closings.reduce((sum, c) => {
+    if (Array.isArray(c.investor_dividends)) {
+      return (
+        sum +
+        c.investor_dividends.reduce((sub, d) => sub + (Number(d.dividend_amount) || 0), 0)
+      );
+    }
+    return sum;
+  }, 0);
+
+  const totalConsortiumEarnings = totalHistoricalDividends + netProfit;
+  const overallPaybackPercent =
+    totalCapital > 0
+      ? Math.min(100, Number(((totalConsortiumEarnings / totalCapital) * 100).toFixed(1)))
+      : 0;
+  const overallBepMonths =
+    netProfit > 0
+      ? (Math.max(0, totalCapital - totalConsortiumEarnings) / netProfit).toFixed(1)
+      : '∞';
+
   const handleOpenAdd = () => {
     setEditingInvestor(null);
     setName('');
@@ -140,18 +182,18 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
 
   return (
     <div className="space-y-4 pb-24 page-transition">
-      {/* Header Banner */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 space-y-3 shadow-lg">
+      {/* Header Banner Konsorsium */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 space-y-3.5 shadow-lg">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">
-              Struktur Ekuitas &amp; Dividen Konsorsium
+              Ekuitas &amp; Portofolio Konsorsium
             </p>
             <p className="text-2xl font-black text-emerald-400 mt-0.5">
               {formatRupiah(totalCapital)}
             </p>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Laba Bersih Siap Bagi: <span className="text-emerald-400 font-bold">{formatRupiah(netProfit)}</span>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Total Modal Disetor 3 Investor • 100% Dialokasikan ke Infrastruktur
             </p>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -178,6 +220,43 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
               <Plus className="w-4 h-4 stroke-[3]" />
               Tambah
             </button>
+          </div>
+        </div>
+
+        {/* 4 KPI Ringkasan Konsorsium */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-800/80">
+          <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-0.5">
+            <span className="text-[9.5px] text-slate-400 uppercase font-semibold flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-emerald-400" /> Total Dividen
+            </span>
+            <p className="text-xs sm:text-sm font-black text-emerald-400">{formatRupiah(totalConsortiumEarnings)}</p>
+            <p className="text-[9px] text-slate-400">{overallPaybackPercent}% dari modal awal</p>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-0.5">
+            <span className="text-[9.5px] text-slate-400 uppercase font-semibold flex items-center gap-1">
+              <DollarSign className="w-3 h-3 text-cyan-400" /> Laba Siap Bagi
+            </span>
+            <p className="text-xs sm:text-sm font-black text-cyan-300">{formatRupiah(netProfit)}</p>
+            <p className="text-[9px] text-slate-400">Bulan berjalan (tgl 25)</p>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-0.5">
+            <span className="text-[9.5px] text-slate-400 uppercase font-semibold flex items-center gap-1">
+              <Layers className="w-3 h-3 text-violet-400" /> Aset Fisik Riil
+            </span>
+            <p className="text-xs sm:text-sm font-black text-violet-300">{formatRupiah(totalCapexSpent)}</p>
+            <p className="text-[9px] text-emerald-400 font-semibold">Cover 101.5% modal</p>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-0.5">
+            <span className="text-[9.5px] text-slate-400 uppercase font-semibold flex items-center gap-1">
+              <Hourglass className="w-3 h-3 text-amber-400" /> Estimasi BEP
+            </span>
+            <p className="text-xs sm:text-sm font-black text-amber-300">
+              {overallBepMonths === '0' ? 'Impas' : `${overallBepMonths} Bulan`}
+            </p>
+            <p className="text-[9px] text-slate-400">Laju profit saat ini</p>
           </div>
         </div>
 
@@ -231,26 +310,40 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Klausul Kontrak 12 Bulan (Sep 2026 - Agu 2027)
           </p>
           <p className="leading-normal">
-            Dividen bulanan (tgl 20) merupakan bagi hasil atas laba operasional bersih. Setelah masa kontrak 12 bulan berakhir, mitra investor dapat memperpanjang kontrak bagi hasil dividen atau melakukan evaluasi pengalihan valuasi kepemilikan aset.
+            Dividen bulanan (tgl 25) merupakan bagi hasil atas laba operasional bersih. Setelah masa kontrak 12 bulan berakhir, mitra investor dapat memperpanjang kontrak bagi hasil dividen atau melakukan evaluasi pengalihan valuasi kepemilikan aset.
           </p>
         </div>
       </div>
 
       {/* Investors List */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         <h3 className="text-xs font-bold text-slate-300 px-1 flex items-center gap-1.5 uppercase tracking-wider">
           <PieChart className="w-4 h-4 text-emerald-400" />
-          Daftar Pemilik Modal &amp; Pembagian Dividen
+          Rapor Portofolio &amp; Balik Modal Per Investor
         </h3>
 
         {investors.map((inv) => {
           const dividend = (netProfit * inv.share_percentage) / 100;
           const contract = calculateContractProgress(inv.join_date, inv.contract_months || 12);
+          const historicalDividends = getInvestorHistoricalDividends(inv.id, inv.name);
+          const totalEarned = historicalDividends + dividend;
+          const paybackPercent =
+            inv.capital_invested > 0
+              ? Math.min(100, Number(((totalEarned / inv.capital_invested) * 100).toFixed(1)))
+              : 0;
+          const remainingCapital = Math.max(0, inv.capital_invested - totalEarned);
+          const assetShare = (totalCapexSpent * inv.share_percentage) / 100;
+          let bepEstimate = '∞';
+          if (remainingCapital <= 0) {
+            bepEstimate = '0';
+          } else if (dividend > 0) {
+            bepEstimate = (remainingCapital / dividend).toFixed(1);
+          }
 
           return (
             <div
               key={inv.id}
-              className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-xs space-y-3 shadow-md"
+              className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800/90 text-xs space-y-3.5 shadow-md"
             >
               {/* Header Investor */}
               <div className="flex justify-between items-start">
@@ -261,8 +354,8 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                       {inv.role}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Modal Disetor: <span className="text-slate-200 font-bold">{formatRupiah(inv.capital_invested)}</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Mulai Bergabung: <span className="text-slate-300 font-semibold">{contract.startStr}</span>
                   </p>
                 </div>
 
@@ -273,8 +366,74 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                 </div>
               </div>
 
+              {/* Rapor Finansial 2x2 Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* 1. Modal Awal Disetor */}
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                    <Wallet className="w-3 h-3 text-slate-400" /> Modal Awal
+                  </p>
+                  <p className="font-black text-xs text-slate-100">{formatRupiah(inv.capital_invested)}</p>
+                  <p className="text-[9.5px] text-slate-500">100% dialokasikan</p>
+                </div>
+
+                {/* 2. Sudah Untung Berapa (Masuk Rekening) */}
+                <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/20 space-y-0.5">
+                  <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-emerald-400" /> Sudah Untung Masuk
+                  </p>
+                  <p className="font-black text-xs text-emerald-300">{formatRupiah(totalEarned)}</p>
+                  <p className="text-[9.5px] text-slate-400">
+                    Bln ini: {formatRupiah(dividend)} • Lalu: {formatRupiah(historicalDividends)}
+                  </p>
+                </div>
+
+                {/* 3. Sisa Modal Belum Kembali & BEP */}
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                    <Hourglass className="w-3 h-3 text-amber-400" /> Sisa Belum Impas
+                  </p>
+                  <p className={`font-black text-xs ${remainingCapital <= 0 ? 'text-emerald-400' : 'text-amber-300'}`}>
+                    {remainingCapital <= 0 ? 'LUNAS / IMPAS 🎉' : formatRupiah(remainingCapital)}
+                  </p>
+                  <p className="text-[9.5px] text-slate-400">
+                    BEP: {bepEstimate === '0' ? 'Sudah Impas' : `${bepEstimate} Bln lagi`}
+                  </p>
+                </div>
+
+                {/* 4. Nilai Aset Fisik Penjamin */}
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-0.5">
+                  <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-cyan-400" /> Aset Penjamin
+                  </p>
+                  <p className="font-black text-xs text-cyan-300">{formatRupiah(assetShare)}</p>
+                  <p className="text-[9.5px] text-slate-500">Starlink, FO, OLT, Tiang</p>
+                </div>
+              </div>
+
+              {/* Progress Bar Balik Modal (Payback / ROI) */}
+              <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90 space-y-1.5">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                    <BadgeCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    Progres Balik Modal (ROI)
+                  </span>
+                  <span className="font-black text-emerald-400">{paybackPercent}% Kembali</span>
+                </div>
+                <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 h-full rounded-full transition-all duration-700"
+                    style={{ width: `${Math.max(4, paybackPercent)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-slate-400">
+                  <span>Diterima: {formatRupiah(totalEarned)}</span>
+                  <span>Target Modal: {formatRupiah(inv.capital_invested)}</span>
+                </div>
+              </div>
+
               {/* Progress Masa Kontrak Minimal 1 Tahun */}
-              <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90 space-y-2">
+              <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90 space-y-1.5">
                 <div className="flex justify-between items-center text-[11px]">
                   <span className="text-slate-300 font-bold flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-cyan-400" />
@@ -282,16 +441,13 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                   </span>
                   <span className="font-black text-cyan-300">{contract.percent}%</span>
                 </div>
-
-                {/* Progress bar */}
                 <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-500"
                     style={{ width: `${contract.percent}%` }}
                   />
                 </div>
-
-                <div className="flex justify-between text-[10px] text-slate-400 pt-0.5">
+                <div className="flex justify-between text-[10px] text-slate-400">
                   <span>Mulai: {contract.startStr}</span>
                   <span className="text-amber-300 font-semibold">
                     {contract.remaining > 0 ? `Sisa ${contract.remaining} bulan lagi` : 'Kontrak Selesai / Siap Perpanjang'}
@@ -300,10 +456,13 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                 </div>
               </div>
 
-              {/* Dividen Box */}
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex justify-between items-center">
-                <span className="text-slate-400 text-[11px]">Hak Dividen Bulan Ini:</span>
-                <span className="font-black text-sm text-emerald-400">
+              {/* Hak Dividen Bulan Berjalan Bar */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/40 via-slate-950 to-slate-950 border border-emerald-500/30 flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Hak Dividen Bulan Ini</p>
+                  <p className="text-[10.5px] text-slate-400 mt-0.5">Tutup buku &amp; transfer dividen tgl 25</p>
+                </div>
+                <span className="font-black text-base text-emerald-300">
                   {formatRupiah(dividend)}
                 </span>
               </div>
@@ -335,6 +494,58 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
             Belum ada data investor atau pemegang saham.
           </div>
         )}
+      </div>
+
+      {/* Simulator Percepatan Balik Modal Berbasis Pelanggan */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md space-y-3 text-xs">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="flex items-center gap-1.5 font-bold text-slate-200">
+            <Zap className="w-4 h-4 text-amber-400" />
+            <span>Simulasi Percepatan Balik Modal Berbasis Pelanggan</span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-black text-[10px]">
+            Estimasi Laba
+          </span>
+        </div>
+
+        <p className="text-[11px] text-slate-300 leading-relaxed">
+          Karakteristik bisnis ISP: Beban operasional (Starlink, PLN, Gaji) bersifat flat/tetap (~Rp 2,4 Jt). Setiap penambahan pelanggan baru langsung melipatgandakan dividen dan mempercepat BEP:
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+          {/* Skenario 1: 11 User */}
+          <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90 space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-200">11 User (Sekarang)</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">Impas OPEX</span>
+            </div>
+            <p className="text-[10.5px] text-slate-400">Omzet: Rp 2,6 Jt • Laba: ~Rp 85rb</p>
+            <p className="text-xs font-black text-amber-300">Dividen 20%: Rp 17.000 /bln</p>
+            <p className="text-[10px] text-slate-500">Estimasi Balik Modal: Lambat</p>
+          </div>
+
+          {/* Skenario 2: 20 User */}
+          <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/30 space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-cyan-200">20 User (+9 User)</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">Tumbuh 22x</span>
+            </div>
+            <p className="text-[10.5px] text-slate-400">Omzet: Rp 4,8 Jt • Laba: ~Rp 1,9 Jt</p>
+            <p className="text-xs font-black text-cyan-300">Dividen 20%: Rp 380.000 /bln</p>
+            <p className="text-[10px] text-emerald-400 font-semibold">Estimasi Balik Modal: ±13 Bulan</p>
+          </div>
+
+          {/* Skenario 3: 30 User */}
+          <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-emerald-200">30 User (+19 User)</span>
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300">Optimal 48x</span>
+            </div>
+            <p className="text-[10.5px] text-slate-400">Omzet: Rp 7,2 Jt • Laba: ~Rp 4,1 Jt</p>
+            <p className="text-xs font-black text-emerald-300">Dividen 20%: Rp 820.000 /bln</p>
+            <p className="text-[10px] text-emerald-400 font-bold">Estimasi Balik Modal: ±6 Bulan 🎉</p>
+          </div>
+        </div>
       </div>
 
       {/* Tabel Riwayat Tutup Buku Bulanan (Audit Trail) */}

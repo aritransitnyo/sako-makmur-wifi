@@ -196,33 +196,6 @@ export default function Home() {
     };
     newExpensesList.unshift(incomeEntry);
 
-    // If there is an installation fee (PSB), 100% is directly distributed to field technician as installation labor incentive
-    if (targetSub.installation_fee && targetSub.installation_fee > 0) {
-      const psbAmount = targetSub.installation_fee;
-      // 1. Income record of PSB
-      newExpensesList.unshift({
-        id: `inc-psb-${Date.now()}`,
-        date: new Date().toISOString().split('T')[0],
-        type: 'income',
-        category: 'Biaya Pasang Baru (PSB)',
-        amount: psbAmount,
-        description: `Penerimaan PSB ${targetSub.full_name} (${method})`,
-        fund_source: 'Kas Operasional',
-        created_at: new Date().toISOString(),
-      });
-      // 2. Direct 100% payout to field technician
-      newExpensesList.unshift({
-        id: `exp-psb-${Date.now()}`,
-        date: new Date().toISOString().split('T')[0],
-        type: 'expense',
-        category: 'Insentif Lapangan PSB',
-        amount: psbAmount,
-        description: `Insentif Tarik Kabel & Pasang Baru ${targetSub.full_name} (100% Teknisi Lapangan Langsung)`,
-        fund_source: 'Kas Operasional',
-        created_at: new Date().toISOString(),
-      });
-    }
-
     setExpenses(newExpensesList);
     DataService.saveExpenses(newExpensesList);
   };

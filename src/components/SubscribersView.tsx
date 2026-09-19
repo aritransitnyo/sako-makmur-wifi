@@ -71,7 +71,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [fullName, setFullName] = useState('');
   const [selectedPackageId, setSelectedPackageId] = useState(packages[0]?.id || 'pkg-5m');
   const [customPrice, setCustomPrice] = useState<number>(packages[0]?.price_monthly || 200000);
-  const [installationFee, setInstallationFee] = useState<number>(0);
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [dueDate, setDueDate] = useState<number>(10);
@@ -84,7 +83,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     const firstPkg = packages[0] || { id: 'pkg-5m', price_monthly: 200000 };
     setSelectedPackageId(firstPkg.id);
     setCustomPrice(firstPkg.price_monthly || 200000);
-    setInstallationFee(0);
     setAddress('');
     setPhone('');
     setDueDate(10);
@@ -98,7 +96,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     setFullName(sub.full_name);
     setSelectedPackageId(sub.package_id || packages[0]?.id || 'pkg-5m');
     setCustomPrice(sub.package_price || 200000);
-    setInstallationFee(sub.installation_fee || 0);
     setAddress(sub.address || '');
     setPhone(sub.phone || '');
     setDueDate(sub.due_date || 10);
@@ -153,7 +150,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         package_id: selectedPackageId,
         package_name: finalPkgName,
         package_price: finalPrice,
-        installation_fee: installationFee || 0,
         address: address.trim(),
         phone: phone.trim(),
         due_date: dueDate || 10,
@@ -166,7 +162,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         package_id: selectedPackageId,
         package_name: finalPkgName,
         package_price: finalPrice,
-        installation_fee: installationFee || 0,
         address: address.trim(),
         phone: phone.trim(),
         status: 'active',
@@ -374,11 +369,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                       <Calendar className="w-3 h-3 flex-shrink-0" />
                       Jatuh Tempo: Tgl {sub.due_date || 10}
                     </span>
-                    {sub.installation_fee && sub.installation_fee > 0 && (
-                      <span className="text-[10px] text-amber-400 font-medium">
-                        PSB: {formatRupiah(sub.installation_fee)}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -576,25 +566,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
                   />
                 </div>
-              </div>
-
-              {/* Biaya Pasang Baru / PSB */}
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">
-                  Biaya Pasang Baru / PSB (Opsional)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="50000"
-                  placeholder="0"
-                  value={installationFee || ''}
-                  onChange={(e) => setInstallationFee(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
-                />
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Biaya registrasi awal untuk pengembalian modal belanja alat.
-                </p>
               </div>
 
               <div>
