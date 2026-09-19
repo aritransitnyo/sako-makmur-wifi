@@ -80,6 +80,42 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [dueDate, setDueDate] = useState<number>(10);
+  const [isIsolating, setIsIsolating] = useState(false);
+
+  const handleRunAutoIsolir = async () => {
+    if (unpaidSubscribers.length === 0) return;
+    const confirmMsg = `Peringatan Auto-Isolir Tgl 18:\n\nAda ${unpaidSubscribers.length} pelanggan belum bayar:\n` +
+      unpaidSubscribers.map((s) => `• ${s.full_name} (${s.username_pppoe || '-'})`).join('\n') +
+      `\n\nEksekusi pemutusan internet di Router MikroTik sekarang?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsIsolating(true);
+    let successCount = 0;
+    try {
+      for (const sub of unpaidSubscribers) {
+        onToggleStatus(sub.id, 'suspended');
+        if (sub.username_pppoe) {
+          try {
+            await fetch('/api/mikrotik', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'isolir_user',
+                name: sub.username_pppoe,
+                isolate: true,
+              }),
+            });
+            successCount++;
+          } catch (e) {
+            console.warn('Gagal isolir:', sub.username_pppoe, e);
+          }
+        }
+      }
+      alert(`Auto-Isolir Selesai: ${successCount} pelanggan berhasil diputus di router MikroTik.`);
+    } finally {
+      setIsIsolating(false);
+    }
+  };
 
   const handleOpenAdd = () => {
     setEditingSub(null);
@@ -247,24 +283,51 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         </div>
       </div>
 
-      {/* Siklus Tagihan Quick Actions: Broadcast Tgl 10 & Warning Tgl 18 */}
-      <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
-        <div>
-          <p className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-            <Send className="w-3.5 h-3.5 text-cyan-400" />
-            Siklus Tagihan Tanggal 10 &amp; 18
-          </p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Kirim WhatsApp Tagihan Tgl 10 / Warning Isolir Tgl 18
-          </p>
+      {/* Siklus Tagihan Quick Actions: Broadcast Tgl 10 & Auto-Isolir Tgl 18 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
+          <div>
+            <p className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-cyan-400" />
+              Siklus Tagihan
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Broadcast WA Tgl 10 / Warning Tgl 18
+            </p>
+          </div>
+          <button
+            onClick={onOpenBroadcastModal}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-md shadow-cyan-500/20 flex items-center gap-1.5 transition-all active:scale-95"
+          >
+            <Send className="w-3.5 h-3.5" />
+            Broadcast WA
+          </button>
         </div>
-        <button
-          onClick={onOpenBroadcastModal}
-          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-md shadow-cyan-500/20 flex items-center gap-1.5 transition-all active:scale-95"
-        >
-          <Send className="w-3.5 h-3.5" />
-          Broadcast WA
-        </button>
+
+        <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
+          <div>
+            <p className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+              Auto-Isolir MikroTik (Tgl 18)
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {unpaidSubscribers.length > 0
+                ? `${unpaidSubscribers.length} penunggak siap di-isolir`
+                : 'Semua lunas (router aman)'}
+            </p>
+          </div>
+          <button
+            onClick={handleRunAutoIsolir}
+            disabled={unpaidSubscribers.length === 0 || isIsolating}
+            className={`px-3.5 py-2 rounded-xl font-black text-xs shadow-md flex items-center gap-1.5 transition-all active:scale-95 ${
+              unpaidSubscribers.length > 0
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
+                : 'bg-slate-800/80 text-slate-500 cursor-not-allowed'
+            }`}
+          >
+            {isIsolating ? 'Memproses...' : '⚡ Eksekusi Isolir'}
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter Tabs */}
@@ -589,6 +652,17 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                 />
               </div>
 
+              {/* MikroTik Auto-Provisioning Notice */}
+              <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-xl flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-cyan-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="font-semibold">Otomatis buat &amp; sinkron user di Router MikroTik</span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-900/60 text-cyan-300 font-mono font-bold">
+                  RB750Gr3
+                </span>
+              </div>
+
               <div className="pt-2 flex gap-2">
                 <button
                   type="button"
@@ -599,9 +673,10 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black"
+                  className="w-1/2 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center justify-center gap-1"
                 >
-                  {editingSub ? 'Simpan Perubahan' : 'Simpan Pelanggan'}
+                  <span>⚡</span>
+                  <span>{editingSub ? 'Simpan & Sinkron Router' : 'Simpan & Buat di Router'}</span>
                 </button>
               </div>
             </form>

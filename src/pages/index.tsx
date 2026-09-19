@@ -129,6 +129,16 @@ export default function Home() {
     loadAllData();
   }, []);
 
+  // Helper to map package to MikroTik profile
+  const getMikrotikProfile = (pkgName?: string, price?: number): string => {
+    const name = (pkgName || '').toLowerCase();
+    if (name.includes('20') || (price && price >= 500000)) return 'PAKET-20M';
+    if (name.includes('15') || (price && price >= 400000)) return 'PAKET-15M';
+    if (name.includes('10') || (price && price >= 300000)) return 'PAKET-10M';
+    if (name.includes('8') || (price && price >= 250000)) return 'PAKET-8M';
+    return 'PAKET-5M';
+  };
+
   // Subscribers Handlers
   const handleAddSubscriber = (newSub: Omit<Subscriber, 'id'>) => {
     const created: Subscriber = {
@@ -139,34 +149,85 @@ export default function Home() {
     const updated = [created, ...subscribers];
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
+
+    // Otomatis buat akun PPPoE di router MikroTik
+    if (newSub.username_pppoe) {
+      const profile = getMikrotikProfile(newSub.package_name, newSub.package_price);
+      fetch('/api/mikrotik', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_secret',
+          name: newSub.username_pppoe,
+          password: newSub.pppoe_password || '123',
+          profile: profile,
+          comment: newSub.full_name,
+          disabled: newSub.status === 'suspended',
+        }),
+      }).catch((err) => console.warn('[MikroTik Add Sync Error]:', err));
+    }
   };
 
   const handleUpdateSubscriber = (updatedSub: Subscriber) => {
     const updated = subscribers.map((s) => (s.id === updatedSub.id ? updatedSub : s));
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
+
+    // Sinkron update akun ke MikroTik
+    if (updatedSub.username_pppoe) {
+      const profile = getMikrotikProfile(updatedSub.package_name, updatedSub.package_price);
+      fetch('/api/mikrotik', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_secret',
+          name: updatedSub.username_pppoe,
+          password: updatedSub.pppoe_password || '123',
+          profile: profile,
+          comment: updatedSub.full_name,
+          disabled: updatedSub.status === 'suspended',
+        }),
+      }).catch((err) => console.warn('[MikroTik Update Sync Error]:', err));
+    }
   };
 
   const handleToggleSubscriberStatus = (
     id: string,
     newStatus: 'active' | 'suspended' | 'terminated'
   ) => {
+    const targetSub = subscribers.find((s) => s.id === id);
     const updated = subscribers.map((s) =>
       s.id === id ? { ...s, status: newStatus } : s
     );
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
+
+    // Sinkron isolir / aktifkan langsung ke router MikroTik!
+    if (targetSub && targetSub.username_pppoe) {
+      const isolate = newStatus === 'suspended' || newStatus === 'terminated';
+      fetch('/api/mikrotik', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'isolir_user',
+          name: targetSub.username_pppoe,
+          isolate: isolate,
+        }),
+      }).catch((err) => console.warn('[MikroTik Isolir Sync Error]:', err));
+    }
   };
 
-  // Payment confirmation with automatic Buku Kas sync
+  // Payment confirmation with automatic Buku Kas sync & auto-unisolir
   const handleConfirmPayment = (id: string, method: 'Tunai' | 'Transfer Bank') => {
     const targetSub = subscribers.find((s) => s.id === id);
     if (!targetSub) return;
 
+    const wasSuspended = targetSub.status === 'suspended';
     const updated = subscribers.map((s) =>
       s.id === id
         ? {
             ...s,
+            status: wasSuspended ? ('active' as const) : s.status,
             payment_status: 'paid' as const,
             payment_method: method,
             last_paid_at: new Date().toISOString(),
@@ -175,6 +236,19 @@ export default function Home() {
     );
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
+
+    // Jika sebelumnya di-isolir, otomatis pulihkan internetnya di MikroTik saat bayar!
+    if (wasSuspended && targetSub.username_pppoe) {
+      fetch('/api/mikrotik', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'isolir_user',
+          name: targetSub.username_pppoe,
+          isolate: false,
+        }),
+      }).catch((err) => console.warn('[MikroTik Un-isolir Sync Error]:', err));
+    }
 
     // Auto-record cash-in transaction to Buku Kas
     const newExpensesList = [...expenses];
@@ -209,9 +283,22 @@ export default function Home() {
   };
 
   const handleDeleteSubscriber = (id: string) => {
+    const targetSub = subscribers.find((s) => s.id === id);
     const updated = subscribers.filter((s) => s.id !== id);
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
+
+    // Hapus user PPPoE dari MikroTik
+    if (targetSub && targetSub.username_pppoe) {
+      fetch('/api/mikrotik', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_secret',
+          name: targetSub.username_pppoe,
+        }),
+      }).catch((err) => console.warn('[MikroTik Delete Sync Error]:', err));
+    }
   };
 
   // Expenses Handlers

@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!action) {
     return res.status(400).json({
       status: 'error',
-      message: 'Missing action parameter. Use: test, status, secrets, profiles, traffic, kick, isolir, enable',
+      message: 'Missing action parameter. Use: test, status, secrets, profiles, traffic, kick, isolir, enable, add_secret, delete_secret, isolir_user',
     });
   }
 
@@ -116,6 +116,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({ status: 'error', message: 'Missing secretId or disabled' });
           }
           break;
+        case 'add_secret':
+          if (req.method !== 'POST') {
+            return res.status(405).json({ status: 'error', message: 'POST required for add_secret' });
+          }
+          params.name = req.body?.name;
+          params.password = req.body?.password || '123';
+          params.profile = req.body?.profile || 'PAKET-5M';
+          params.service = req.body?.service || 'pppoe';
+          params.comment = req.body?.comment || '';
+          params.disabled = req.body?.disabled ?? false;
+          if (!params.name) {
+            return res.status(400).json({ status: 'error', message: 'Missing username/name' });
+          }
+          break;
+        case 'delete_secret':
+          if (req.method !== 'POST') {
+            return res.status(405).json({ status: 'error', message: 'POST required for delete_secret' });
+          }
+          params.name = req.body?.name;
+          params.secretId = req.body?.secretId;
+          if (!params.name && !params.secretId) {
+            return res.status(400).json({ status: 'error', message: 'Missing name or secretId' });
+          }
+          break;
+        case 'isolir_user':
+          if (req.method !== 'POST') {
+            return res.status(405).json({ status: 'error', message: 'POST required for isolir_user' });
+          }
+          params.name = req.body?.name;
+          params.secretId = req.body?.secretId;
+          params.isolate = req.body?.isolate ?? true;
+          if (!params.name && !params.secretId) {
+            return res.status(400).json({ status: 'error', message: 'Missing name or secretId' });
+          }
+          break;
       }
 
       const bridgeResp = await bridgeRequest(action, params);
@@ -133,6 +168,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         kickPppoeSession,
         changePppoeProfile,
         setPppoeDisabled,
+        addPppoeSecret,
+        deletePppoeSecret,
+        isolirPppoeUser,
       } = await import('../../lib/mikrotikApi');
 
       switch (action) {
@@ -212,6 +250,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
           await setPppoeDisabled(sid, disabled);
           return res.status(200).json({ status: 'success', message: `Secret ${disabled ? 'disabled' : 'enabled'}` });
+        }
+        case 'add_secret': {
+          if (req.method !== 'POST') {
+            return res.status(405).json({ status: 'error', message: 'POST required for add_secret' });
+          }
+          const { name, password, profile, service, comment, disabled } = req.body;
+          if (!name) {
+            return res.status(400).json({ status: 'error', message: 'Missing name' });
+          }
+          await addPppoeSecret({ name, password, profile, service, comment, disabled });
+          return res.status(200).json({ status: 'success', message: `User PPPoE '${name}' berhasil disimpan di MikroTik` });
+        }
+        case 'delete_secret': {
+          if (req.method !== 'POST') {
+            return res.status(405).json({ status: 'error', message: 'POST required for delete_secret' });
+          }
+          const { name, secretId } = req.body;
+          const target = name || secretId;
+          if (!target) {
+            return res.status(400).json({ status: 'error', message: 'Missing name or secretId' });
+          }
+          await deletePppoeSecret(target);
+          return res.status(200).json({ status: 'success', message: `User PPPoE '${target}' berhasil dihapus dari MikroTik` });
+        }
+        case 'isolir_user': {
+          if (req.method !== 'POST') {
+            return res.status(405).json({ status: 'error', message: 'POST required for isolir_user' });
+          }
+          const { name, secretId, isolate } = req.body;
+          const target = name || secretId;
+          if (!target) {
+            return res.status(400).json({ status: 'error', message: 'Missing name or secretId' });
+          }
+          const success = await isolirPppoeUser(target, isolate ?? true);
+          return res.status(200).json({
+            status: 'success',
+            message: `User '${target}' ${isolate ? 'berhasil di-isolir' : 'berhasil di-aktifkan'}`,
+            success,
+          });
         }
         default:
           return res.status(400).json({ status: 'error', message: `Unknown action: ${action}` });

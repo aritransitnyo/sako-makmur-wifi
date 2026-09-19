@@ -379,6 +379,74 @@ export async function setPppoeDisabled(
   return true;
 }
 
+/** Add or update a PPPoE secret on MikroTik */
+export async function addPppoeSecret(params: {
+  name: string;
+  password?: string;
+  profile?: string;
+  service?: string;
+  comment?: string;
+  disabled?: boolean;
+}): Promise<boolean> {
+  const existing = await sendCommand('/ppp/secret/print', {}, [`?name=${params.name}`]);
+  if (existing && existing.length > 0) {
+    const secId = existing[0]['.id'];
+    await sendCommand('/ppp/secret/set', {
+      '.id': secId,
+      'password': params.password || '123',
+      'profile': params.profile || 'PAKET-5M',
+      'service': params.service || 'pppoe',
+      'disabled': params.disabled ? 'true' : 'false',
+      ...(params.comment ? { 'comment': params.comment } : {}),
+    });
+  } else {
+    await sendCommand('/ppp/secret/add', {
+      'name': params.name,
+      'password': params.password || '123',
+      'profile': params.profile || 'PAKET-5M',
+      'service': params.service || 'pppoe',
+      'disabled': params.disabled ? 'true' : 'false',
+      ...(params.comment ? { 'comment': params.comment } : {}),
+    });
+  }
+  return true;
+}
+
+/** Delete a PPPoE secret */
+export async function deletePppoeSecret(nameOrId: string): Promise<boolean> {
+  let secId = nameOrId;
+  if (!nameOrId.startsWith('*')) {
+    const existing = await sendCommand('/ppp/secret/print', {}, [`?name=${nameOrId}`]);
+    if (existing && existing.length > 0) {
+      secId = existing[0]['.id'];
+    }
+  }
+  await sendCommand('/ppp/secret/remove', { '.id': secId });
+  return true;
+}
+
+/** Isolate or restore a PPPoE user */
+export async function isolirPppoeUser(name: string, isolate: boolean = true): Promise<boolean> {
+  const existing = await sendCommand('/ppp/secret/print', {}, [`?name=${name}`]);
+  if (!existing || existing.length === 0) return false;
+  const secId = existing[0]['.id'];
+  await sendCommand('/ppp/secret/set', {
+    '.id': secId,
+    'disabled': isolate ? 'true' : 'false',
+  });
+  if (isolate) {
+    const active = await sendCommand('/ppp/active/print', {}, [`?name=${name}`]);
+    for (const a of active) {
+      if (a['.id']) {
+        try {
+          await sendCommand('/ppp/active/remove', { '.id': a['.id'] });
+        } catch {}
+      }
+    }
+  }
+  return true;
+}
+
 /** Get interface traffic stats (for bandwidth monitoring) */
 export async function getInterfaceTraffic(interfaceName: string): Promise<InterfaceTraffic | null> {
   try {
