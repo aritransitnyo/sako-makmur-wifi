@@ -200,10 +200,10 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
             <button
               onClick={onOpenPrintModal}
               className="p-2.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold shadow"
-              title="Cetak Laporan Resmi Investor"
+              title="Laporan Resmi &amp; Format WA Investor"
             >
-              <Printer className="w-4 h-4 text-cyan-400" />
-              <span className="hidden sm:inline">Cetak</span>
+              <FileText className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Laporan &amp; WA</span>
             </button>
             <button
               onClick={onOpenClosingModal}

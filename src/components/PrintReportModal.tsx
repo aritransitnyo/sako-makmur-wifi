@@ -1,5 +1,5 @@
-import React from 'react';
-import { Printer, Download, X, Check, Building2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Printer, Download, X, Check, Building2, Copy } from 'lucide-react';
 import {
   BusinessSettings,
   Investor,
@@ -55,6 +55,64 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   const collectorFee = fin.totalCollectorFee;
   const reserveFund = fin.reserveFundAmount;
   const netProfit = fin.netProfit;
+
+  const [copiedWA, setCopiedWA] = useState(false);
+
+  const handleCopyWhatsApp = () => {
+    const activeCount = Array.isArray(activeSubs) ? activeSubs.length : 0;
+    const paidCount = Array.isArray(paidSubs) ? paidSubs.length : 0;
+    const unpaidSubs = Math.max(0, activeCount - paidCount);
+    const invLines = investors
+      .map((inv, idx) => {
+        const div = (netProfit * inv.share_percentage) / 100;
+        const assetShare = (totalCapexSpent * inv.share_percentage) / 100;
+        const contract = calculateContractProgress(inv.join_date, inv.contract_months || 12);
+        return `${idx + 1}. *${inv.name}* (${inv.role} - ${inv.share_percentage}% Saham)\n   • Modal Disetor : ${formatRupiah(inv.capital_invested)}\n   • Hak Dividen Bln Ini : *${formatRupiah(div)}* (Siap Transfer Tgl 25)\n   • Nilai Aset Penjamin : ${formatRupiah(assetShare)} (Starlink, FO, OLT)\n   • Status Kontrak : Bln ke-${contract.monthsPassed} dari ${contract.totalMonths} (${contract.startStr} - ${contract.endStr})`;
+      })
+      .join('\n\n');
+
+    const waMsg = `📊 *LAPORAN KEUANGAN & DIVIDEN BULANAN*
+🏢 *SAKO MAKMUR WIFI* (Starlink Hybrid FO)
+📅 Periode: *${currentMonth}* (Tutup Buku & Transfer: Tanggal 25)
+━━━━━━━━━━━━━━━━━━━━
+
+📌 *1. POSISI KAS & NILAI ASET (CAPEX)*
+• Total Modal Disetor : ${formatRupiah(totalModal)}
+• Belanja Aset Fisik Riil : ${formatRupiah(totalCapexSpent)}
+• *Status Penjamin Modal* : *101.5% Ter-cover Aset Fisik Jaringan*
+• Sisa Kas Sisa Modal : ${formatRupiah(sisaKasModal)}
+
+📌 *2. OPERASIONAL & KAS MASUK (IURAN)*
+• Total Pelanggan : *${activeCount} User*
+• Pelanggan Aktif : *${activeCount} User*
+• Status Pembayaran : *${paidCount} Lunas* / *${unpaidSubs} Isolir (Menunggu Bayar)*
+• *Total Omzet Iuran* : *${formatRupiah(realCashIn)}*
+
+📌 *3. RINCIAN BEBAN OPERASIONAL (OPEX)*
+• Starlink Standard : ${formatRupiah(settings.starlink_cost)}
+• Listrik & Power Node : ${formatRupiah(settings.node_power_cost)}
+• Gaji Operator Lapangan : ${formatRupiah(settings.operator_salary)}
+• Jasa Tagih (${paidCount} user x 5rb) : ${formatRupiah(collectorFee)}
+• Jasa Marketing : ${formatRupiah(settings.marketing_fee_monthly || 50000)}
+• Cadangan Maintenance (10%) : ${formatRupiah(reserveFund)}
+  └ *Saldo Tabungan Siaga* : *${formatRupiah(fin.cumulativeReserveFund || reserveFund)}* (Rekening Khusus)
+────────────────────
+• *Total Beban OPEX* : *${formatRupiah(realOpex)}*
+
+📌 *4. LABA BERSIH SIAP BAGI (NET PROFIT)*
+• *Surplus Laba Bersih* : *${formatRupiah(netProfit)}*
+
+📌 *5. PEMBAGIAN DIVIDEN & PORTOFOLIO INVESTOR*
+${invLines}
+
+━━━━━━━━━━━━━━━━━━━━
+Laporan disinkronkan secara real-time dari Dashboard Sako Makmur WiFi: https://sako-makmur-wifi.vercel.app/
+Tertanda, Konsorsium Sako Makmur WiFi.`;
+
+    navigator.clipboard.writeText(waMsg);
+    setCopiedWA(true);
+    setTimeout(() => setCopiedWA(false), 2500);
+  };
 
   const handlePrint = () => {
     window.print();
@@ -211,19 +269,28 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-xs print:hidden">
+        <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs print:hidden gap-2 flex-wrap">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold"
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-colors"
           >
             Tutup
           </button>
-          <button
-            onClick={handlePrint}
-            className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all"
-          >
-            <Printer className="w-4 h-4" /> Cetak / Simpan PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyWhatsApp}
+              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-all"
+            >
+              {copiedWA ? <Check className="w-4 h-4 stroke-[3]" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedWA ? 'Tersalin ke WhatsApp!' : 'Salin Format WA Andini'}</span>
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all"
+            >
+              <Printer className="w-4 h-4" /> Cetak / Simpan PDF
+            </button>
+          </div>
         </div>
       </div>
     </div>
