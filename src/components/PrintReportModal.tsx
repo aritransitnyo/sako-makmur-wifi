@@ -30,6 +30,8 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   expenses,
   capexItems,
 }) => {
+  const [copiedWA, setCopiedWA] = useState(false);
+
   if (!isOpen) return null;
 
   const currentMonth = new Intl.DateTimeFormat('id-ID', {
@@ -55,8 +57,6 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   const collectorFee = fin.totalCollectorFee;
   const reserveFund = fin.reserveFundAmount;
   const netProfit = fin.netProfit;
-
-  const [copiedWA, setCopiedWA] = useState(false);
 
   const handleCopyWhatsApp = () => {
     const activeCount = Array.isArray(activeSubs) ? activeSubs.length : 0;

@@ -27,6 +27,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   paymentDate,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [sendingWA, setSendingWA] = useState(false);
 
   if (!isOpen || !subscriber) return null;
 
@@ -92,8 +93,6 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
-
-  const [sendingWA, setSendingWA] = useState(false);
 
   const handleSendWhatsApp = () => {
     if (sendingWA) return;
