@@ -154,7 +154,7 @@ export const DEFAULT_CAPEX: CapexItem[] = [
   {
     id: 'cap-8',
     item_name: 'Jasa Tarik Kabel Backbone & Instalasi Awal Jaringan',
-    category: 'Kabel & Distribusi',
+    category: 'Jasa & Instalasi',
     quantity: 1,
     unit: 'lot',
     unit_price: 4000000,
@@ -488,7 +488,20 @@ export class DataService {
         return { data, isSupabase: true };
       }
     } catch {}
-    return { data: this.getLocal('capex', DEFAULT_CAPEX), isSupabase: false };
+    const stored = this.getLocal('capex', DEFAULT_CAPEX);
+    // Auto-migration: ensure 'Jasa Tarik Kabel Backbone & Instalasi Awal Jaringan' (cap-8) is in stored
+    const hasJasaPasang = stored.some(
+      (c) => c.id === 'cap-8' || c.item_name?.toLowerCase().includes('instalasi') || c.item_name?.toLowerCase().includes('tarik kabel')
+    );
+    if (!hasJasaPasang) {
+      const jasaItem = DEFAULT_CAPEX.find((c) => c.id === 'cap-8');
+      if (jasaItem) {
+        const merged = [...stored, jasaItem];
+        this.setLocal('capex', merged);
+        return { data: merged, isSupabase: false };
+      }
+    }
+    return { data: stored, isSupabase: false };
   }
 
   static async saveCapex(items: CapexItem[]): Promise<void> {

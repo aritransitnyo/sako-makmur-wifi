@@ -25,7 +25,7 @@ export interface Investor {
 export interface CapexItem {
   id: string;
   item_name: string;
-  category?: 'Starlink & Backhaul' | 'MikroTik & Core' | 'Kabel & Distribusi' | 'Power & Backup' | 'Lainnya';
+  category?: 'Starlink & Backhaul' | 'MikroTik & Core' | 'Kabel & Distribusi' | 'Power & Backup' | 'Jasa & Instalasi' | 'Lainnya';
   quantity: number;
   unit: string;
   unit_price: number;

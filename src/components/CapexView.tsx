@@ -240,6 +240,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
                   <option value="MikroTik & Core">MikroTik &amp; Core Network</option>
                   <option value="Kabel & Distribusi">Kabel FO &amp; Distribusi</option>
                   <option value="Power & Backup">Power, Listrik &amp; UPS</option>
+                  <option value="Jasa & Instalasi">Jasa &amp; Instalasi Jaringan / Pasang</option>
                   <option value="Lainnya">Lainnya / Tiang / Aksesoris</option>
                 </select>
               </div>
