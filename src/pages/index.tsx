@@ -98,6 +98,12 @@ export default function Home() {
     DataService.saveSubscribers(updated);
   };
 
+  const handleUpdateSubscriber = (updatedSub: Subscriber) => {
+    const updated = subscribers.map((s) => (s.id === updatedSub.id ? updatedSub : s));
+    setSubscribers(updated);
+    DataService.saveSubscribers(updated);
+  };
+
   const handleToggleSubscriberStatus = (
     id: string,
     newStatus: 'active' | 'suspended' | 'terminated'
@@ -141,6 +147,12 @@ export default function Home() {
     DataService.saveExpenses(updated);
   };
 
+  const handleUpdateExpense = (updatedExp: ExpenseTransaction) => {
+    const updated = expenses.map((e) => (e.id === updatedExp.id ? updatedExp : e));
+    setExpenses(updated);
+    DataService.saveExpenses(updated);
+  };
+
   const handleDeleteExpense = (id: string) => {
     const updated = expenses.filter((e) => e.id !== id);
     setExpenses(updated);
@@ -156,6 +168,12 @@ export default function Home() {
       created_at: new Date().toISOString(),
     };
     const updated = [created, ...capexItems];
+    setCapexItems(updated);
+    DataService.saveCapex(updated);
+  };
+
+  const handleUpdateCapex = (updatedItem: CapexItem) => {
+    const updated = capexItems.map((c) => (c.id === updatedItem.id ? updatedItem : c));
     setCapexItems(updated);
     DataService.saveCapex(updated);
   };
@@ -178,10 +196,22 @@ export default function Home() {
     DataService.saveInvestors(updated);
   };
 
+  const handleUpdateInvestor = (updatedInv: Investor) => {
+    const updated = investors.map((i) => (i.id === updatedInv.id ? updatedInv : i));
+    setInvestors(updated);
+    DataService.saveInvestors(updated);
+  };
+
   const handleDeleteInvestor = (id: string) => {
     const updated = investors.filter((i) => i.id !== id);
     setInvestors(updated);
     DataService.saveInvestors(updated);
+  };
+
+  // Settings Handler
+  const handleUpdateSettings = (updatedSettings: BusinessSettings) => {
+    setSettings(updatedSettings);
+    DataService.updateSettings(updatedSettings);
   };
 
   // Reset Handlers
@@ -233,6 +263,7 @@ export default function Home() {
             subscribers={subscribers}
             capexItems={capexItems}
             onNavigateTab={(tab) => setActiveTab(tab)}
+            onUpdateSettings={handleUpdateSettings}
           />
         )}
 
@@ -242,6 +273,7 @@ export default function Home() {
             subscribers={subscribers}
             packages={packages}
             onAddSubscriber={handleAddSubscriber}
+            onUpdateSubscriber={handleUpdateSubscriber}
             onToggleStatus={handleToggleSubscriberStatus}
             onTogglePayment={handleTogglePayment}
             onDeleteSubscriber={handleDeleteSubscriber}
@@ -254,6 +286,7 @@ export default function Home() {
             expenses={expenses}
             realCashIn={realCashIn}
             onAddExpense={handleAddExpense}
+            onUpdateExpense={handleUpdateExpense}
             onDeleteExpense={handleDeleteExpense}
           />
         )}
@@ -263,6 +296,7 @@ export default function Home() {
             capexItems={capexItems}
             investors={investors}
             onAddCapex={handleAddCapex}
+            onUpdateCapex={handleUpdateCapex}
             onDeleteCapex={handleDeleteCapex}
           />
         )}
@@ -272,6 +306,7 @@ export default function Home() {
             investors={investors}
             netProfit={netProfit}
             onAddInvestor={handleAddInvestor}
+            onUpdateInvestor={handleUpdateInvestor}
             onDeleteInvestor={handleDeleteInvestor}
           />
         )}

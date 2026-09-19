@@ -16,6 +16,7 @@ import {
   Clock,
   DollarSign,
   Send,
+  Edit3,
 } from 'lucide-react';
 import { Subscriber, PppoePackage } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -25,6 +26,7 @@ interface SubscribersViewProps {
   subscribers: Subscriber[];
   packages: PppoePackage[];
   onAddSubscriber: (sub: Omit<Subscriber, 'id'>) => void;
+  onUpdateSubscriber: (sub: Subscriber) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'suspended' | 'terminated') => void;
   onTogglePayment: (id: string, newStatus: 'paid' | 'unpaid') => void;
   onDeleteSubscriber: (id: string) => void;
@@ -36,6 +38,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   subscribers,
   packages,
   onAddSubscriber,
+  onUpdateSubscriber,
   onToggleStatus,
   onTogglePayment,
   onDeleteSubscriber,
@@ -44,6 +47,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'unpaid' | 'paid' | 'suspended'>('all');
   const [showModal, setShowModal] = useState(false);
+  const [editingSub, setEditingSub] = useState<Subscriber | null>(null);
 
   // Form State
   const [username, setUsername] = useState('');
@@ -53,6 +57,30 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [dueDate, setDueDate] = useState<number>(10);
+
+  const handleOpenAdd = () => {
+    setEditingSub(null);
+    setUsername('');
+    setPassword('123');
+    setFullName('');
+    setSelectedPackageId(packages[0]?.id || 'pkg-1');
+    setAddress('');
+    setPhone('');
+    setDueDate(10);
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (sub: Subscriber) => {
+    setEditingSub(sub);
+    setUsername(sub.username_pppoe);
+    setPassword(sub.pppoe_password || '123');
+    setFullName(sub.full_name);
+    setSelectedPackageId(sub.package_id || packages[0]?.id || 'pkg-1');
+    setAddress(sub.address || '');
+    setPhone(sub.phone || '');
+    setDueDate(sub.due_date || 10);
+    setShowModal(true);
+  };
 
   const filtered = subscribers.filter((sub) => {
     const matchSearch =
@@ -81,19 +109,34 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     if (!fullName || !username) return;
 
     const pkg = packages.find((p) => p.id === selectedPackageId);
-    onAddSubscriber({
-      username_pppoe: username.trim().toLowerCase(),
-      pppoe_password: password.trim() || '123',
-      full_name: fullName.trim(),
-      package_id: selectedPackageId,
-      package_name: pkg?.package_name || 'Paket Internet',
-      package_price: pkg?.price_monthly || 100000,
-      address: address.trim(),
-      phone: phone.trim(),
-      status: 'active',
-      due_date: dueDate || 10,
-      payment_status: 'unpaid',
-    });
+    if (editingSub) {
+      onUpdateSubscriber({
+        ...editingSub,
+        username_pppoe: username.trim().toLowerCase(),
+        pppoe_password: password.trim() || '123',
+        full_name: fullName.trim(),
+        package_id: selectedPackageId,
+        package_name: pkg?.package_name || editingSub.package_name || 'Paket Internet',
+        package_price: pkg?.price_monthly || editingSub.package_price || 100000,
+        address: address.trim(),
+        phone: phone.trim(),
+        due_date: dueDate || 10,
+      });
+    } else {
+      onAddSubscriber({
+        username_pppoe: username.trim().toLowerCase(),
+        pppoe_password: password.trim() || '123',
+        full_name: fullName.trim(),
+        package_id: selectedPackageId,
+        package_name: pkg?.package_name || 'Paket Internet',
+        package_price: pkg?.price_monthly || 100000,
+        address: address.trim(),
+        phone: phone.trim(),
+        status: 'active',
+        due_date: dueDate || 10,
+        payment_status: 'unpaid',
+      });
+    }
 
     setUsername('');
     setPassword('123');
@@ -101,6 +144,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     setAddress('');
     setPhone('');
     setDueDate(10);
+    setEditingSub(null);
     setShowModal(false);
   };
 
@@ -154,7 +198,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
               <span className="hidden sm:inline font-bold">MikroTik</span>
             </button>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={handleOpenAdd}
               className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-lg shadow-cyan-500/25 transition-all active:scale-95"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
@@ -339,6 +383,15 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                     {isActive ? 'Isolir' : 'Aktif'}
                   </button>
 
+                  {/* Edit button */}
+                  <button
+                    onClick={() => handleOpenEdit(sub)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800 transition-colors"
+                    title="Edit Data Pelanggan"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+
                   <button
                     onClick={() => onDeleteSubscriber(sub.id)}
                     className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
@@ -366,7 +419,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <Users className="w-4 h-4 text-cyan-400" />
-                Tambah Pelanggan PPPoE Baru
+                {editingSub ? 'Edit Data Pelanggan PPPoE' : 'Tambah Pelanggan PPPoE Baru'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -477,7 +530,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                   type="submit"
                   className="w-1/2 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black"
                 >
-                  Simpan Pelanggan
+                  {editingSub ? 'Simpan Perubahan' : 'Simpan Pelanggan'}
                 </button>
               </div>
             </form>

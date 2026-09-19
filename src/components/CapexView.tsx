@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Plus, Trash2, Layers, DollarSign, Package } from 'lucide-react';
+import { ShoppingBag, Plus, Trash2, Layers, DollarSign, Package, Edit3 } from 'lucide-react';
 import { CapexItem, Investor } from '../types';
 import { formatRupiah } from './MetricCard';
 
@@ -7,6 +7,7 @@ interface CapexViewProps {
   capexItems: CapexItem[];
   investors: Investor[];
   onAddCapex: (item: Omit<CapexItem, 'id' | 'total_price'>) => void;
+  onUpdateCapex: (item: CapexItem) => void;
   onDeleteCapex: (id: string) => void;
 }
 
@@ -14,9 +15,12 @@ export const CapexView: React.FC<CapexViewProps> = ({
   capexItems,
   investors,
   onAddCapex,
+  onUpdateCapex,
   onDeleteCapex,
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<CapexItem | null>(null);
+
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState<CapexItem['category']>('Starlink & Backhaul');
   const [quantity, setQuantity] = useState(1);
@@ -28,21 +32,54 @@ export const CapexView: React.FC<CapexViewProps> = ({
   const sisaModal = Math.max(0, totalCapital - totalSpent);
   const percentUsed = totalCapital > 0 ? ((totalSpent / totalCapital) * 100).toFixed(1) : '0';
 
+  const handleOpenAdd = () => {
+    setEditingItem(null);
+    setItemName('');
+    setCategory('Starlink & Backhaul');
+    setQuantity(1);
+    setUnit('unit');
+    setUnitPrice(0);
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (item: CapexItem) => {
+    setEditingItem(item);
+    setItemName(item.item_name);
+    setCategory(item.category || 'Starlink & Backhaul');
+    setQuantity(item.quantity);
+    setUnit(item.unit);
+    setUnitPrice(item.unit_price);
+    setShowModal(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemName || unitPrice <= 0) return;
 
-    onAddCapex({
-      item_name: itemName.trim(),
-      category,
-      quantity,
-      unit,
-      unit_price: unitPrice,
-    });
+    if (editingItem) {
+      onUpdateCapex({
+        ...editingItem,
+        item_name: itemName.trim(),
+        category,
+        quantity,
+        unit,
+        unit_price: unitPrice,
+        total_price: quantity * unitPrice,
+      });
+    } else {
+      onAddCapex({
+        item_name: itemName.trim(),
+        category,
+        quantity,
+        unit,
+        unit_price: unitPrice,
+      });
+    }
 
     setItemName('');
     setQuantity(1);
     setUnitPrice(0);
+    setEditingItem(null);
     setShowModal(false);
   };
 
@@ -61,10 +98,10 @@ export const CapexView: React.FC<CapexViewProps> = ({
             </p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-600/20 transition-all"
+            onClick={handleOpenAdd}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-600/20 transition-all active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[3]" />
             Beli Alat
           </button>
         </div>
@@ -96,7 +133,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
         {capexItems.map((item) => (
           <div
             key={item.id}
-            className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/90 text-xs space-y-2"
+            className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/90 text-xs space-y-2 shadow-md"
           >
             <div className="flex justify-between items-start">
               <div>
@@ -115,12 +152,21 @@ export const CapexView: React.FC<CapexViewProps> = ({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex justify-end">
+            <div className="pt-2 border-t border-slate-800 flex justify-end gap-2">
+              <button
+                onClick={() => handleOpenEdit(item)}
+                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-cyan-400 transition-colors"
+                title="Edit Item"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Edit
+              </button>
               <button
                 onClick={() => onDeleteCapex(item.id)}
                 className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-rose-400 transition-colors"
+                title="Hapus"
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-3.5 h-3.5" />
                 Hapus
               </button>
             </div>
@@ -128,18 +174,18 @@ export const CapexView: React.FC<CapexViewProps> = ({
         ))}
       </div>
 
-      {/* Modal Tambah CAPEX */}
+      {/* Modal Tambah / Edit CAPEX */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-violet-400" />
-                Catat Belanja Modal (CAPEX)
+                {editingItem ? 'Edit Aset Belanja Modal' : 'Catat Belanja Modal (CAPEX)'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white text-xs"
+                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800"
               >
                 Tutup
               </button>
@@ -147,23 +193,23 @@ export const CapexView: React.FC<CapexViewProps> = ({
 
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-400 mb-1">Nama Barang / Pengadaan</label>
+                <label className="block text-slate-400 mb-1 font-medium">Nama Barang / Pengadaan</label>
                 <input
                   type="text"
                   required
                   placeholder="Contoh: Kabel FO 1000m / Starlink Mount"
                   value={itemName}
                   onChange={(e) => setItemName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Kategori</label>
+                <label className="block text-slate-400 mb-1 font-medium">Kategori</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
                 >
                   <option value="Starlink & Backhaul">Starlink & Backhaul</option>
                   <option value="MikroTik & Core">MikroTik & Core Network</option>
@@ -175,31 +221,31 @@ export const CapexView: React.FC<CapexViewProps> = ({
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-400 mb-1">Jumlah (Qty)</label>
+                  <label className="block text-slate-400 mb-1 font-medium">Jumlah (Qty)</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={quantity}
                     onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Satuan</label>
+                  <label className="block text-slate-400 mb-1 font-medium">Satuan</label>
                   <input
                     type="text"
                     required
                     placeholder="unit, roll, pcs"
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Harga Satuan (Rp)</label>
+                <label className="block text-slate-400 mb-1 font-medium">Harga Satuan (Rp)</label>
                 <input
                   type="number"
                   min="0"
@@ -207,7 +253,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
                   placeholder="0"
                   value={unitPrice || ''}
                   onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-violet-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-violet-500"
                 />
               </div>
 
@@ -222,15 +268,15 @@ export const CapexView: React.FC<CapexViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-1/2 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold"
+                  className="w-1/2 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold"
+                  className="w-1/2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black"
                 >
-                  Simpan Item
+                  {editingItem ? 'Simpan Perubahan' : 'Simpan Item'}
                 </button>
               </div>
             </form>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, Plus, Trash2, Calendar, FileText, ArrowDownRight, Tag } from 'lucide-react';
+import { Wallet, Plus, Trash2, Calendar, FileText, ArrowDownRight, Tag, Edit3 } from 'lucide-react';
 import { ExpenseTransaction } from '../types';
 import { formatRupiah } from './MetricCard';
 
@@ -7,6 +7,7 @@ interface ExpensesViewProps {
   expenses: ExpenseTransaction[];
   realCashIn: number;
   onAddExpense: (item: Omit<ExpenseTransaction, 'id' | 'created_at'>) => void;
+  onUpdateExpense: (item: ExpenseTransaction) => void;
   onDeleteExpense: (id: string) => void;
 }
 
@@ -14,9 +15,12 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   expenses,
   realCashIn,
   onAddExpense,
+  onUpdateExpense,
   onDeleteExpense,
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
+
   const [category, setCategory] = useState<ExpenseTransaction['category']>('Listrik & Token PLN');
   const [amount, setAmount] = useState<number>(0);
   const [description, setDescription] = useState('');
@@ -25,19 +29,48 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
   const netCashFlow = realCashIn - totalExpense;
 
+  const handleOpenAdd = () => {
+    setEditingExpense(null);
+    setCategory('Listrik & Token PLN');
+    setAmount(0);
+    setDescription('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (exp: ExpenseTransaction) => {
+    setEditingExpense(exp);
+    setCategory(exp.category);
+    setAmount(exp.amount);
+    setDescription(exp.description);
+    setDate(exp.date);
+    setShowModal(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (amount <= 0 || !description) return;
 
-    onAddExpense({
-      date,
-      category,
-      amount,
-      description: description.trim(),
-    });
+    if (editingExpense) {
+      onUpdateExpense({
+        ...editingExpense,
+        date,
+        category,
+        amount,
+        description: description.trim(),
+      });
+    } else {
+      onAddExpense({
+        date,
+        category,
+        amount,
+        description: description.trim(),
+      });
+    }
 
     setAmount(0);
     setDescription('');
+    setEditingExpense(null);
     setShowModal(false);
   };
 
@@ -76,7 +109,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
             </p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenAdd}
             className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/25 transition-all active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
@@ -133,10 +166,19 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex justify-end">
+            <div className="pt-2 border-t border-slate-800/80 flex justify-end gap-2">
+              <button
+                onClick={() => handleOpenEdit(exp)}
+                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-cyan-400 transition-colors"
+                title="Edit Pengeluaran"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                Edit
+              </button>
               <button
                 onClick={() => onDeleteExpense(exp.id)}
                 className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-rose-400 transition-colors"
+                title="Hapus"
               >
                 <Trash2 className="w-3 h-3" />
                 Hapus
@@ -152,14 +194,14 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         )}
       </div>
 
-      {/* Modal Tambah Biaya */}
+      {/* Modal Tambah / Edit Biaya */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-amber-400" />
-                Catat Pengeluaran Riil
+                {editingExpense ? 'Edit Pengeluaran Riil' : 'Catat Pengeluaran Riil'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -235,7 +277,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   type="submit"
                   className="w-1/2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black"
                 >
-                  Simpan Biaya
+                  {editingExpense ? 'Simpan Perubahan' : 'Simpan Biaya'}
                 </button>
               </div>
             </form>
