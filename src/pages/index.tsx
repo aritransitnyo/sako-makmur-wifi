@@ -179,28 +179,46 @@ export default function Home() {
     // Auto-record cash-in transaction to Buku Kas
     const newExpensesList = [...expenses];
     const amount = targetSub.package_price || 200000;
+    const currentPeriodKey = new Date().toISOString().slice(0, 7);
+    const isCurrentPeriodClosed = closings.some((c) => c.period_key === currentPeriodKey);
+
     const incomeEntry: ExpenseTransaction = {
       id: `inc-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
       type: 'income',
       category: 'Iuran Bulanan Pelanggan',
       amount: amount,
-      description: `Iuran ${targetSub.full_name} (${method})`,
+      description: isCurrentPeriodClosed
+        ? `Iuran Susulan ${targetSub.full_name} (${method}) - Kas Masuk Periode Berikutnya`
+        : `Iuran ${targetSub.full_name} (${method})`,
       fund_source: 'Kas Operasional',
       created_at: new Date().toISOString(),
     };
     newExpensesList.unshift(incomeEntry);
 
-    // If there is an installation fee (PSB), record it to Kas Sisa Modal
+    // If there is an installation fee (PSB), 100% is directly distributed to field technician as installation labor incentive
     if (targetSub.installation_fee && targetSub.installation_fee > 0) {
+      const psbAmount = targetSub.installation_fee;
+      // 1. Income record of PSB
       newExpensesList.unshift({
         id: `inc-psb-${Date.now()}`,
         date: new Date().toISOString().split('T')[0],
         type: 'income',
         category: 'Biaya Pasang Baru (PSB)',
-        amount: targetSub.installation_fee,
-        description: `Biaya Pasang Baru ${targetSub.full_name} (${method})`,
-        fund_source: 'Kas Sisa Modal',
+        amount: psbAmount,
+        description: `Penerimaan PSB ${targetSub.full_name} (${method})`,
+        fund_source: 'Kas Operasional',
+        created_at: new Date().toISOString(),
+      });
+      // 2. Direct 100% payout to field technician
+      newExpensesList.unshift({
+        id: `exp-psb-${Date.now()}`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'expense',
+        category: 'Insentif Lapangan PSB',
+        amount: psbAmount,
+        description: `Insentif Tarik Kabel & Pasang Baru ${targetSub.full_name} (100% Teknisi Lapangan Langsung)`,
+        fund_source: 'Kas Operasional',
         created_at: new Date().toISOString(),
       });
     }
@@ -493,6 +511,7 @@ export default function Home() {
             investors={investors}
             closings={closings}
             netProfit={netProfit}
+            totalCapexSpent={totalCapexSpent}
             onAddInvestor={handleAddInvestor}
             onUpdateInvestor={handleUpdateInvestor}
             onDeleteInvestor={handleDeleteInvestor}

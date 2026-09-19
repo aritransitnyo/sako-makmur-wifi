@@ -145,6 +145,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         />
       </div>
 
+      {/* Milestone Target & Batas Keamanan Kas */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 uppercase tracking-wider truncate">
+              <TrendingUp className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+              Milestone Pertumbuhan Pelanggan
+            </h3>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+              Target Ideal: 25 User • Saat ini: {fin.activeCount} User Aktif
+            </p>
+          </div>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide border flex-shrink-0 ${
+              fin.activeCount <= 11
+                ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                : fin.activeCount < 25
+                ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+            }`}
+          >
+            {fin.activeCount <= 11
+              ? 'Zona Impas (Margin Tipis)'
+              : fin.activeCount < 25
+              ? 'Zona Aman (+Laba)'
+              : 'Zona Skala Ideal (Optimal)'}
+          </span>
+        </div>
+
+        <div className="space-y-1">
+          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 flex gap-0.5 border border-slate-800 relative">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${
+                fin.activeCount <= 11
+                  ? 'bg-gradient-to-r from-rose-500 to-amber-500'
+                  : fin.activeCount < 25
+                  ? 'bg-gradient-to-r from-amber-500 via-cyan-500 to-blue-500'
+                  : 'bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400'
+              }`}
+              style={{ width: `${Math.min(100, Math.max(5, (fin.activeCount / 25) * 100))}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-[10px] text-slate-400 px-0.5">
+            <span className="text-rose-400 font-semibold">1-11 User (Impas)</span>
+            <span className="text-cyan-400 font-semibold">12-24 User (Tumbuh)</span>
+            <span className="text-emerald-400 font-semibold">25+ User (Dividen Rp 3Jt+)</span>
+          </div>
+        </div>
+      </div>
+
       {/* Visual OPEX Stacked Allocation */}
       <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md space-y-3">
         <div className="flex items-center justify-between">

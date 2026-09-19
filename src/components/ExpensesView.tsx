@@ -46,6 +46,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
   const [expToDelete, setExpToDelete] = useState<ExpenseTransaction | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<
+    'all' | 'Kas Operasional' | 'Kas Dana Cadangan (Maintenance)' | 'Kas Sisa Modal'
+  >('all');
 
   // Form State
   const [category, setCategory] = useState<string>('Listrik & Token PLN');
@@ -58,12 +61,20 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const [receiptUrl, setReceiptUrl] = useState('');
 
   // Calculations
-  const opexExpenses = expenses.filter(
+  const expenseItems = expenses.filter((e) => e.type !== 'income');
+  const opexExpenses = expenseItems.filter(
     (e) => !e.fund_source || e.fund_source === 'Kas Operasional'
   );
-  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
+  const totalExpense = expenseItems.reduce((sum, item) => sum + item.amount, 0);
   const totalOpexBerjalan = opexExpenses.reduce((sum, item) => sum + item.amount, 0);
   const netKasOperasional = realCashIn - totalOpexBerjalan;
+
+  // Filtered list
+  const displayedExpenses = expenses.filter((e) => {
+    if (selectedFilter === 'all') return true;
+    if (selectedFilter === 'Kas Operasional') return !e.fund_source || e.fund_source === 'Kas Operasional';
+    return e.fund_source === selectedFilter;
+  });
 
   const handleOpenAdd = () => {
     setEditingExpense(null);
@@ -192,9 +203,70 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         </button>
       </div>
 
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+        <button
+          onClick={() => setSelectedFilter('all')}
+          className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
+            selectedFilter === 'all'
+              ? 'bg-amber-500 text-slate-950 shadow-sm'
+              : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+          }`}
+        >
+          Semua ({expenses.length})
+        </button>
+        <button
+          onClick={() => setSelectedFilter('Kas Operasional')}
+          className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
+            selectedFilter === 'Kas Operasional'
+              ? 'bg-amber-500 text-slate-950 shadow-sm'
+              : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+          }`}
+        >
+          Kas Operasional
+        </button>
+        <button
+          onClick={() => setSelectedFilter('Kas Dana Cadangan (Maintenance)')}
+          className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap flex items-center gap-1 transition-all ${
+            selectedFilter === 'Kas Dana Cadangan (Maintenance)'
+              ? 'bg-cyan-500 text-slate-950 shadow-sm'
+              : 'bg-slate-900 text-cyan-400 border border-slate-800 hover:text-cyan-300'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" /> Tabungan Cadangan ({expenses.filter((e) => e.fund_source === 'Kas Dana Cadangan (Maintenance)').length})
+        </button>
+        <button
+          onClick={() => setSelectedFilter('Kas Sisa Modal')}
+          className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
+            selectedFilter === 'Kas Sisa Modal'
+              ? 'bg-violet-500 text-slate-950 shadow-sm'
+              : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+          }`}
+        >
+          Kas Sisa Modal
+        </button>
+      </div>
+
+      {/* Audit Banner khusus Kas Dana Cadangan */}
+      {selectedFilter === 'Kas Dana Cadangan (Maintenance)' && (
+        <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-cyan-300 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-cyan-400" /> Audit Kas Dana Cadangan &amp; Maintenance
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-black text-[10px]">
+              Saldo Tersimpan: {formatRupiah(cumulativeReserveFund)}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-300 leading-relaxed">
+            Dana cadangan 10% disisihkan setiap tutup buku tanggal 20 ke rekening khusus tabungan. Biaya perbaikan darurat/force majeure yang ditarik dari kantong ini tidak mengurangi laba bersih dividen bulan berjalan.
+          </p>
+        </div>
+      )}
+
       {/* Expenses History List */}
       <div className="space-y-2.5">
-        {expenses.map((exp) => (
+        {displayedExpenses.map((exp) => (
           <div
             key={exp.id}
             className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800/90 hover:border-slate-700 transition-all text-xs shadow-md space-y-2"
@@ -209,6 +281,11 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   >
                     {exp.category}
                   </span>
+                  {exp.type === 'income' && (
+                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-600/50">
+                      Pemasukan
+                    </span>
+                  )}
                   {exp.fund_source && (
                     <span
                       className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold border ${
@@ -234,8 +311,12 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
               </div>
 
               <div className="text-right flex-shrink-0">
-                <p className="font-black text-sm text-rose-400">
-                  - {formatRupiah(exp.amount)}
+                <p
+                  className={`font-black text-sm ${
+                    exp.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
+                  }`}
+                >
+                  {exp.type === 'income' ? '+' : '-'} {formatRupiah(exp.amount)}
                 </p>
                 {exp.receipt_url && (
                   <a

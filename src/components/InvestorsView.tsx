@@ -14,6 +14,9 @@ import {
   Clock,
   Hourglass,
   BadgeCheck,
+  Layers,
+  ShieldCheck,
+  FileText,
 } from 'lucide-react';
 import { Investor, MonthlyClosing } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -23,6 +26,7 @@ interface InvestorsViewProps {
   investors: Investor[];
   closings: MonthlyClosing[];
   netProfit: number;
+  totalCapexSpent?: number;
   onAddInvestor: (inv: Omit<Investor, 'id'>) => void;
   onUpdateInvestor: (inv: Investor) => void;
   onDeleteInvestor: (id: string) => void;
@@ -62,6 +66,7 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
   investors,
   closings,
   netProfit,
+  totalCapexSpent = 25385000,
   onAddInvestor,
   onUpdateInvestor,
   onDeleteInvestor,
@@ -188,6 +193,46 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
           >
             {totalShares.toFixed(1)}% {Math.abs(totalShares - 100) < 0.1 ? '✓ Pas 100%' : '⚠️ Belum 100%'}
           </span>
+        </div>
+      </div>
+
+      {/* Transparansi Nilai Aset Fisik & Klausul Kontrak */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md space-y-2.5 text-xs">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
+          <div className="flex items-center gap-1.5 font-bold text-slate-200">
+            <Layers className="w-4 h-4 text-cyan-400" />
+            <span>Kepemilikan Aset Jaringan Konsorsium</span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 font-black text-[10px] border border-cyan-800/40">
+            Aset Riil: {formatRupiah(totalCapexSpent)}
+          </span>
+        </div>
+
+        <p className="text-[11px] text-slate-300 leading-relaxed">
+          Modal disetor para mitra telah dibelanjakan menjadi aset produktif fisik (Starlink Kit, Core Router MikroTik, OLT HiOSO, Kabel Dropcore FO, Tiang, dan UPS). Seluruh aset fisik adalah milik bersama konsorsium secara proporsional:
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+          {investors.map((inv) => (
+            <div key={inv.id} className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-0.5">
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="text-slate-400 font-semibold truncate">{inv.name.split(' ')[0]}</span>
+                <span className="font-bold text-emerald-400">{inv.share_percentage}%</span>
+              </div>
+              <p className="font-black text-xs text-slate-200">
+                {formatRupiah((totalCapexSpent * inv.share_percentage) / 100)}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800/90 space-y-1 text-[10.5px] text-slate-400">
+          <p className="font-semibold text-slate-300 flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Klausul Kontrak 12 Bulan (Sep 2026 - Agu 2027)
+          </p>
+          <p className="leading-normal">
+            Dividen bulanan (tgl 20) merupakan bagi hasil atas laba operasional bersih. Setelah masa kontrak 12 bulan berakhir, mitra investor dapat memperpanjang kontrak bagi hasil dividen atau melakukan evaluasi pengalihan valuasi kepemilikan aset.
+          </p>
         </div>
       </div>
 
