@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Plus, Trash2, Layers, DollarSign, Package, Edit3 } from 'lucide-react';
+import {
+  ShoppingBag,
+  Plus,
+  Trash2,
+  Layers,
+  DollarSign,
+  Package,
+  Edit3,
+  ExternalLink,
+} from 'lucide-react';
 import { CapexItem, Investor } from '../types';
 import { formatRupiah } from './MetricCard';
+import { ConfirmModal } from './ConfirmModal';
 
 interface CapexViewProps {
   capexItems: CapexItem[];
@@ -20,12 +30,14 @@ export const CapexView: React.FC<CapexViewProps> = ({
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CapexItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<CapexItem | null>(null);
 
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState<CapexItem['category']>('Starlink & Backhaul');
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState('unit');
   const [unitPrice, setUnitPrice] = useState(0);
+  const [receiptUrl, setReceiptUrl] = useState('');
 
   const totalSpent = capexItems.reduce((sum, item) => sum + item.total_price, 0);
   const totalCapital = investors.reduce((sum, inv) => sum + inv.capital_invested, 0);
@@ -39,6 +51,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
     setQuantity(1);
     setUnit('unit');
     setUnitPrice(0);
+    setReceiptUrl('');
     setShowModal(true);
   };
 
@@ -49,6 +62,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
     setQuantity(item.quantity);
     setUnit(item.unit);
     setUnitPrice(item.unit_price);
+    setReceiptUrl(item.receipt_url || '');
     setShowModal(true);
   };
 
@@ -65,6 +79,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
         unit,
         unit_price: unitPrice,
         total_price: quantity * unitPrice,
+        receipt_url: receiptUrl.trim() || undefined,
       });
     } else {
       onAddCapex({
@@ -73,12 +88,10 @@ export const CapexView: React.FC<CapexViewProps> = ({
         quantity,
         unit,
         unit_price: unitPrice,
+        receipt_url: receiptUrl.trim() || undefined,
       });
     }
 
-    setItemName('');
-    setQuantity(1);
-    setUnitPrice(0);
     setEditingItem(null);
     setShowModal(false);
   };
@@ -86,7 +99,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
   return (
     <div className="space-y-4 pb-24 page-transition">
       {/* CAPEX Progress Card */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-950/40 via-slate-900 to-slate-900 border border-violet-500/20 space-y-3">
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-950/40 via-slate-900 to-slate-900 border border-violet-500/20 space-y-3 shadow-lg">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-xs text-slate-400 font-medium">Alokasi Modal Belanja (CAPEX)</p>
@@ -125,9 +138,9 @@ export const CapexView: React.FC<CapexViewProps> = ({
 
       {/* Items list */}
       <div className="space-y-2.5">
-        <h3 className="text-xs font-bold text-slate-300 px-1 flex items-center gap-1.5">
+        <h3 className="text-xs font-bold text-slate-300 px-1 flex items-center gap-1.5 uppercase tracking-wider">
           <Layers className="w-4 h-4 text-cyan-400" />
-          Rincian Aset Jaringan & Pengadaan ({capexItems.length} Item)
+          Rincian Aset Jaringan &amp; Pengadaan ({capexItems.length} Item)
         </h3>
 
         {capexItems.map((item) => (
@@ -135,12 +148,24 @@ export const CapexView: React.FC<CapexViewProps> = ({
             key={item.id}
             className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800/90 text-xs space-y-2 shadow-md"
           >
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start gap-2">
               <div>
                 <p className="font-bold text-sm text-slate-100">{item.item_name}</p>
-                <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-medium bg-slate-800 border border-slate-700 text-slate-400 mt-1">
-                  {item.category || 'Infrastruktur'}
-                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-block px-1.5 py-0.2 rounded text-[10px] font-medium bg-slate-800 border border-slate-700 text-slate-400">
+                    {item.category || 'Infrastruktur'}
+                  </span>
+                  {item.receipt_url && (
+                    <a
+                      href={item.receipt_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-0.5 text-[10px] text-cyan-400 hover:underline"
+                    >
+                      Nota / Foto <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               </div>
               <div className="text-right">
                 <p className="font-bold text-slate-200">
@@ -162,7 +187,7 @@ export const CapexView: React.FC<CapexViewProps> = ({
                 Edit
               </button>
               <button
-                onClick={() => onDeleteCapex(item.id)}
+                onClick={() => setItemToDelete(item)}
                 className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-rose-400 transition-colors"
                 title="Hapus"
               >
@@ -211,10 +236,10 @@ export const CapexView: React.FC<CapexViewProps> = ({
                   onChange={(e) => setCategory(e.target.value as any)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
                 >
-                  <option value="Starlink & Backhaul">Starlink & Backhaul</option>
-                  <option value="MikroTik & Core">MikroTik & Core Network</option>
-                  <option value="Kabel & Distribusi">Kabel FO & Distribusi</option>
-                  <option value="Power & Backup">Power, Listrik & UPS</option>
+                  <option value="Starlink & Backhaul">Starlink &amp; Backhaul</option>
+                  <option value="MikroTik & Core">MikroTik &amp; Core Network</option>
+                  <option value="Kabel & Distribusi">Kabel FO &amp; Distribusi</option>
+                  <option value="Power & Backup">Power, Listrik &amp; UPS</option>
                   <option value="Lainnya">Lainnya / Tiang / Aksesoris</option>
                 </select>
               </div>
@@ -257,6 +282,20 @@ export const CapexView: React.FC<CapexViewProps> = ({
                 />
               </div>
 
+              {/* URL Bukti / Nota */}
+              <div>
+                <label className="block text-slate-400 mb-1 font-medium">
+                  URL Bukti Nota / Foto (Opsional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://... link bukti pembelian"
+                  value={receiptUrl}
+                  onChange={(e) => setReceiptUrl(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-violet-500 text-xs"
+                />
+              </div>
+
               <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-slate-300">
                 <span className="text-slate-400">Total Biaya: </span>
                 <span className="font-bold text-violet-400">
@@ -283,6 +322,20 @@ export const CapexView: React.FC<CapexViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(itemToDelete)}
+        title="Hapus Item Belanja Modal"
+        message={`Apakah Anda yakin ingin menghapus item CAPEX "${itemToDelete?.item_name}" seharga ${formatRupiah(itemToDelete?.total_price || 0)}?`}
+        onConfirm={() => {
+          if (itemToDelete) {
+            onDeleteCapex(itemToDelete.id);
+            setItemToDelete(null);
+          }
+        }}
+        onCancel={() => setItemToDelete(null)}
+      />
     </div>
   );
 };

@@ -31,7 +31,7 @@ export const ShareReportModal: React.FC<ShareReportModalProps> = ({
   
   // Real cash inflow
   const realCashIn = paidSubscribers.reduce(
-    (sum, s) => sum + (s.package_price || 100000),
+    (sum, s) => sum + (s.package_price || 200000),
     0
   );
 

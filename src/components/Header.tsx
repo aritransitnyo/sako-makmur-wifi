@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, Database, Sparkles, Share2, RefreshCw } from 'lucide-react';
+import { Wifi, Database, Sparkles, Share2, RefreshCw, Lock } from 'lucide-react';
 
 interface HeaderProps {
   businessName: string;
@@ -8,6 +8,7 @@ interface HeaderProps {
   onOpenSqlModal: () => void;
   onOpenResetWizard: () => void;
   onOpenShareReport: () => void;
+  onLockApp: () => void;
   loading: boolean;
 }
 
@@ -18,6 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSqlModal,
   onOpenResetWizard,
   onOpenShareReport,
+  onLockApp,
   loading,
 }) => {
   return (
@@ -74,6 +76,15 @@ export const Header: React.FC<HeaderProps> = ({
             title="Status Database Cloud Supabase"
           >
             <Database className="w-4 h-4" />
+          </button>
+
+          {/* Lock App / Logout */}
+          <button
+            onClick={onLockApp}
+            className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-amber-400 hover:bg-slate-800 border border-slate-800 transition-colors"
+            title="Kunci Aplikasi (Logout)"
+          >
+            <Lock className="w-4 h-4" />
           </button>
 
           {/* Refresh Data */}

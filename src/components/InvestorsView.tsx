@@ -1,27 +1,46 @@
 import React, { useState } from 'react';
-import { PieChart, Plus, Trash2, Shield, UserCheck, Percent, Edit3, History } from 'lucide-react';
-import { Investor } from '../types';
+import {
+  PieChart,
+  Plus,
+  Trash2,
+  Shield,
+  UserCheck,
+  Percent,
+  Edit3,
+  History,
+  Printer,
+  Calendar,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react';
+import { Investor, MonthlyClosing } from '../types';
 import { formatRupiah } from './MetricCard';
+import { ConfirmModal } from './ConfirmModal';
 
 interface InvestorsViewProps {
   investors: Investor[];
+  closings: MonthlyClosing[];
   netProfit: number;
   onAddInvestor: (inv: Omit<Investor, 'id'>) => void;
   onUpdateInvestor: (inv: Investor) => void;
   onDeleteInvestor: (id: string) => void;
   onOpenClosingModal: () => void;
+  onOpenPrintModal: () => void;
 }
 
 export const InvestorsView: React.FC<InvestorsViewProps> = ({
   investors,
+  closings,
   netProfit,
   onAddInvestor,
   onUpdateInvestor,
   onDeleteInvestor,
   onOpenClosingModal,
+  onOpenPrintModal,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingInvestor, setEditingInvestor] = useState<Investor | null>(null);
+  const [investorToDelete, setInvestorToDelete] = useState<Investor | null>(null);
 
   const [name, setName] = useState('');
   const [role, setRole] = useState<'Managing Owner' | 'Investor'>('Investor');
@@ -83,7 +102,9 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
       <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 space-y-3 shadow-lg">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Struktur Ekuitas & Dividen Konsorsium</p>
+            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">
+              Struktur Ekuitas &amp; Dividen Konsorsium
+            </p>
             <p className="text-2xl font-black text-emerald-400 mt-0.5">
               {formatRupiah(totalCapital)}
             </p>
@@ -91,11 +112,19 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
               Laba Bersih Siap Bagi: <span className="text-emerald-400 font-bold">{formatRupiah(netProfit)}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <button
+              onClick={onOpenPrintModal}
+              className="p-2.5 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold shadow"
+              title="Cetak Laporan Resmi Investor"
+            >
+              <Printer className="w-4 h-4 text-cyan-400" />
+              <span className="hidden sm:inline">Cetak</span>
+            </button>
             <button
               onClick={onOpenClosingModal}
               className="p-2.5 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold shadow"
-              title="Tutup Buku Bulanan & Arsip Dividen"
+              title="Tutup Buku Bulanan &amp; Arsip Dividen"
             >
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">Tutup Buku</span>
@@ -129,7 +158,7 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
       <div className="space-y-2.5">
         <h3 className="text-xs font-bold text-slate-300 px-1 flex items-center gap-1.5 uppercase tracking-wider">
           <PieChart className="w-4 h-4 text-emerald-400" />
-          Daftar Pemilik Modal & Pembagian Dividen
+          Daftar Pemilik Modal &amp; Pembagian Dividen
         </h3>
 
         {investors.map((inv) => {
@@ -177,7 +206,7 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                   Edit
                 </button>
                 <button
-                  onClick={() => onDeleteInvestor(inv.id)}
+                  onClick={() => setInvestorToDelete(inv)}
                   className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-rose-400 transition-colors"
                   title="Hapus"
                 >
@@ -188,6 +217,56 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
             </div>
           );
         })}
+      </div>
+
+      {/* Tabel Riwayat Tutup Buku Bulanan (Audit Trail) */}
+      <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md space-y-3 text-xs">
+        <div className="flex justify-between items-center">
+          <h3 className="font-bold text-slate-200 flex items-center gap-1.5 uppercase tracking-wider text-xs">
+            <History className="w-4 h-4 text-cyan-400" />
+            Riwayat Arsip Tutup Buku Bulanan
+          </h3>
+          <button
+            onClick={onOpenClosingModal}
+            className="text-[11px] text-cyan-400 hover:underline font-semibold"
+          >
+            Lihat Lengkap &gt;
+          </button>
+        </div>
+
+        {closings.length > 0 ? (
+          <div className="divide-y divide-slate-800/80">
+            {closings.map((c) => (
+              <div key={c.id} className="py-2.5 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-slate-100">{c.period_month}</span>
+                    <span className="text-[10px] text-slate-500 ml-2">
+                      {new Date(c.closed_at).toLocaleDateString('id-ID')}
+                    </span>
+                  </div>
+                  <span className="font-black text-emerald-400">
+                    {formatRupiah(c.net_profit)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-[10px] text-slate-400">
+                  {c.investor_dividends.map((d) => (
+                    <span
+                      key={d.investor_id}
+                      className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800"
+                    >
+                      {d.name.split(' ')[0]}: <strong className="text-slate-200">{formatRupiah(d.dividend_amount)}</strong>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-slate-500 text-center py-4 text-xs">
+            Belum ada arsip tutup buku.
+          </p>
+        )}
       </div>
 
       {/* Modal Tambah / Edit Investor */}
@@ -279,6 +358,20 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(investorToDelete)}
+        title="Hapus Data Investor"
+        message={`Apakah Anda yakin ingin menghapus data investor "${investorToDelete?.name}" (${investorToDelete?.share_percentage}% saham)?`}
+        onConfirm={() => {
+          if (investorToDelete) {
+            onDeleteInvestor(investorToDelete.id);
+            setInvestorToDelete(null);
+          }
+        }}
+        onCancel={() => setInvestorToDelete(null)}
+      />
     </div>
   );
 };

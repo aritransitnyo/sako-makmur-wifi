@@ -16,12 +16,13 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   node_power_cost: 300000,
   operator_salary: 1000000,
   reserve_fund_pct: 10.0,
+  admin_pin: '1234',
 };
 
 export const DEFAULT_INVESTORS: Investor[] = [
   {
     id: 'inv-1',
-    name: 'Anton (Managing Owner)',
+    name: 'Ahmad Fauzi',
     role: 'Managing Owner',
     capital_invested: 15000000,
     share_percentage: 60.0,
@@ -29,7 +30,7 @@ export const DEFAULT_INVESTORS: Investor[] = [
   },
   {
     id: 'inv-2',
-    name: 'Budi Santoso',
+    name: 'Tri Wahyono',
     role: 'Investor',
     capital_invested: 5000000,
     share_percentage: 20.0,
@@ -37,7 +38,7 @@ export const DEFAULT_INVESTORS: Investor[] = [
   },
   {
     id: 'inv-3',
-    name: 'Haji Rahmat',
+    name: 'Anwar Khadafi Saimona',
     role: 'Investor',
     capital_invested: 5000000,
     share_percentage: 20.0,
@@ -141,6 +142,15 @@ export const DEFAULT_CAPEX: CapexItem[] = [
     unit: 'batang',
     unit_price: 320000,
     total_price: 1600000,
+  },
+  {
+    id: 'cap-8',
+    item_name: 'Jasa Tarik Kabel Backbone & Instalasi Awal Jaringan',
+    category: 'Kabel & Distribusi',
+    quantity: 1,
+    unit: 'lot',
+    unit_price: 4000000,
+    total_price: 4000000,
   },
 ];
 
@@ -271,44 +281,44 @@ export const DEFAULT_CLOSINGS: MonthlyClosing[] = [
     period_month: 'Agustus 2026',
     period_key: '2026-08',
     closed_at: '2026-08-31T23:59:00.000Z',
-    closed_by: 'Anton (Managing Owner)',
+    closed_by: 'Ahmad Fauzi (Managing Owner)',
     active_subscribers_count: 26,
     paid_subscribers_count: 26,
-    gross_revenue: 3900000,
+    gross_revenue: 5200000,
     total_expenses: 2225000,
-    reserve_fund_amount: 390000,
+    reserve_fund_amount: 520000,
     reserve_fund_pct: 10.0,
-    net_profit: 1285000,
+    net_profit: 2455000,
     investor_dividends: [
       {
         investor_id: 'inv-1',
-        name: 'Anton (Managing Owner)',
+        name: 'Ahmad Fauzi',
         role: 'Managing Owner',
         share_percentage: 60.0,
-        dividend_amount: 771000,
+        dividend_amount: 1473000,
         paid_status: 'paid',
         paid_at: '2026-09-01T10:00:00.000Z',
       },
       {
         investor_id: 'inv-2',
-        name: 'Budi Santoso',
+        name: 'Tri Wahyono',
         role: 'Investor',
         share_percentage: 20.0,
-        dividend_amount: 257000,
+        dividend_amount: 491000,
         paid_status: 'paid',
         paid_at: '2026-09-01T10:15:00.000Z',
       },
       {
         investor_id: 'inv-3',
-        name: 'Haji Rahmat',
+        name: 'Anwar Khadafi Saimona',
         role: 'Investor',
         share_percentage: 20.0,
-        dividend_amount: 257000,
+        dividend_amount: 491000,
         paid_status: 'paid',
         paid_at: '2026-09-01T10:20:00.000Z',
       },
     ],
-    notes: 'Tutup buku bulan Agustus 2026. Semua dividen sudah ditransfer lunas ke rekening investor.',
+    notes: 'Tutup buku bulan Agustus 2026. Semua dividen telah ditransfer lunas via Bank ke rekening masing-masing investor.',
   },
 ];
 
@@ -406,7 +416,13 @@ export class DataService {
         return { data, isSupabase: true };
       }
     } catch {}
-    return { data: this.getLocal('packages', DEFAULT_PACKAGES), isSupabase: false };
+    const stored = this.getLocal('packages', DEFAULT_PACKAGES);
+    const hasOldPrices = stored.some((p) => p.price_monthly < 200000 || p.id === 'pkg-1');
+    if (hasOldPrices) {
+      this.setLocal('packages', DEFAULT_PACKAGES);
+      return { data: DEFAULT_PACKAGES, isSupabase: false };
+    }
+    return { data: stored, isSupabase: false };
   }
 
   static async savePackages(packages: PppoePackage[]): Promise<void> {
@@ -426,7 +442,26 @@ export class DataService {
         return { data, isSupabase: true };
       }
     } catch {}
-    return { data: this.getLocal('subscribers', DEFAULT_SUBSCRIBERS), isSupabase: false };
+    const stored = this.getLocal('subscribers', DEFAULT_SUBSCRIBERS);
+    // Auto-migrate old 100rb prices to new official package prices
+    const migrated = stored.map((s) => {
+      if (!s.package_price || s.package_price < 200000) {
+        if (s.package_name?.includes('20') || s.package_name?.includes('UMKM') || s.package_name?.includes('KANTOR')) {
+          return { ...s, package_id: 'pkg-20m', package_name: 'UMKM & KANTOR (Up to 20 Mbps)', package_price: 500000 };
+        } else if (s.package_name?.includes('15')) {
+          return { ...s, package_id: 'pkg-15m', package_name: 'Paket Up to 15 Mbps', package_price: 400000 };
+        } else if (s.package_name?.includes('10')) {
+          return { ...s, package_id: 'pkg-10m', package_name: 'Paket Up to 10 Mbps', package_price: 300000 };
+        } else if (s.package_name?.includes('8')) {
+          return { ...s, package_id: 'pkg-8m', package_name: 'Paket Up to 8 Mbps', package_price: 250000 };
+        } else {
+          return { ...s, package_id: 'pkg-5m', package_name: 'Paket Up to 5 Mbps', package_price: 200000 };
+        }
+      }
+      return s;
+    });
+    this.setLocal('subscribers', migrated);
+    return { data: migrated, isSupabase: false };
   }
 
   static async saveSubscribers(subscribers: Subscriber[]): Promise<void> {

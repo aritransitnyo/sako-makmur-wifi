@@ -5,6 +5,7 @@ export interface BusinessSettings {
   node_power_cost: number;
   operator_salary: number;
   reserve_fund_pct: number;
+  admin_pin?: string;
   updated_at?: string;
 }
 
@@ -25,6 +26,7 @@ export interface CapexItem {
   unit: string;
   unit_price: number;
   total_price: number;
+  receipt_url?: string;
   created_at?: string;
 }
 
@@ -44,11 +46,13 @@ export interface Subscriber {
   package_id: string;
   package_name?: string;
   package_price?: number;
+  installation_fee?: number; // Biaya Pasang Baru (PSB)
   address: string;
   phone: string;
   status: 'active' | 'suspended' | 'terminated';
   due_date: number; // 1 - 31
   payment_status: 'paid' | 'unpaid';
+  payment_method?: 'Tunai' | 'Transfer Bank';
   last_paid_at?: string;
   created_at?: string;
 }
@@ -56,9 +60,12 @@ export interface Subscriber {
 export interface ExpenseTransaction {
   id: string;
   date: string;
-  category: 'Langganan Starlink' | 'Listrik & Token PLN' | 'Gaji Operator' | 'Bensin & Transport' | 'Sparepart & Konektor FO' | 'Lain-lain';
+  type?: 'expense' | 'income';
+  category: string;
   amount: number;
   description: string;
+  fund_source?: 'Kas Operasional' | 'Kas Sisa Modal' | 'Dana Talangan Pengelola';
+  receipt_url?: string;
   created_at?: string;
 }
 
@@ -82,8 +89,8 @@ export interface InvestorDividendSnapshot {
 
 export interface MonthlyClosing {
   id: string;
-  period_month: string; // e.g. "September 2026"
-  period_key: string;   // e.g. "2026-09"
+  period_month: string;
+  period_key: string;
   closed_at: string;
   closed_by: string;
   active_subscribers_count: number;

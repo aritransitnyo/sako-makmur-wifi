@@ -17,9 +17,12 @@ import {
   DollarSign,
   Send,
   Edit3,
+  CreditCard,
+  Banknote,
 } from 'lucide-react';
 import { Subscriber, PppoePackage } from '../types';
 import { formatRupiah } from './MetricCard';
+import { ConfirmModal } from './ConfirmModal';
 
 interface SubscribersViewProps {
   businessName: string;
@@ -28,7 +31,8 @@ interface SubscribersViewProps {
   onAddSubscriber: (sub: Omit<Subscriber, 'id'>) => void;
   onUpdateSubscriber: (sub: Subscriber) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'suspended' | 'terminated') => void;
-  onTogglePayment: (id: string, newStatus: 'paid' | 'unpaid') => void;
+  onConfirmPayment: (id: string, method: 'Tunai' | 'Transfer Bank') => void;
+  onCancelPayment: (id: string) => void;
   onDeleteSubscriber: (id: string) => void;
   onOpenMikrotikModal: () => void;
 }
@@ -40,7 +44,8 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   onAddSubscriber,
   onUpdateSubscriber,
   onToggleStatus,
-  onTogglePayment,
+  onConfirmPayment,
+  onCancelPayment,
   onDeleteSubscriber,
   onOpenMikrotikModal,
 }) => {
@@ -49,11 +54,19 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscriber | null>(null);
 
+  // Deletion Confirmation State
+  const [subToDelete, setSubToDelete] = useState<Subscriber | null>(null);
+
+  // Payment Confirmation Modal (Tunai vs Transfer Bank)
+  const [payingSub, setPayingSub] = useState<Subscriber | null>(null);
+
   // Form State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('123');
   const [fullName, setFullName] = useState('');
-  const [selectedPackageId, setSelectedPackageId] = useState(packages[0]?.id || 'pkg-1');
+  const [selectedPackageId, setSelectedPackageId] = useState(packages[0]?.id || 'pkg-5m');
+  const [customPrice, setCustomPrice] = useState<number>(packages[0]?.price_monthly || 200000);
+  const [installationFee, setInstallationFee] = useState<number>(0);
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [dueDate, setDueDate] = useState<number>(10);
@@ -63,7 +76,10 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     setUsername('');
     setPassword('123');
     setFullName('');
-    setSelectedPackageId(packages[0]?.id || 'pkg-1');
+    const firstPkg = packages[0] || { id: 'pkg-5m', price_monthly: 200000 };
+    setSelectedPackageId(firstPkg.id);
+    setCustomPrice(firstPkg.price_monthly || 200000);
+    setInstallationFee(0);
     setAddress('');
     setPhone('');
     setDueDate(10);
@@ -75,11 +91,21 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     setUsername(sub.username_pppoe);
     setPassword(sub.pppoe_password || '123');
     setFullName(sub.full_name);
-    setSelectedPackageId(sub.package_id || packages[0]?.id || 'pkg-1');
+    setSelectedPackageId(sub.package_id || packages[0]?.id || 'pkg-5m');
+    setCustomPrice(sub.package_price || 200000);
+    setInstallationFee(sub.installation_fee || 0);
     setAddress(sub.address || '');
     setPhone(sub.phone || '');
     setDueDate(sub.due_date || 10);
     setShowModal(true);
+  };
+
+  const handlePackageChange = (pkgId: string) => {
+    setSelectedPackageId(pkgId);
+    const found = packages.find((p) => p.id === pkgId);
+    if (found) {
+      setCustomPrice(found.price_monthly);
+    }
   };
 
   const filtered = subscribers.filter((sub) => {
@@ -101,14 +127,17 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const paidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'paid');
   const unpaidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'unpaid');
 
-  const totalPotensi = activeSubscribers.reduce((sum, s) => sum + (s.package_price || 100000), 0);
-  const totalTerkumpul = paidSubscribers.reduce((sum, s) => sum + (s.package_price || 100000), 0);
+  const totalPotensi = activeSubscribers.reduce((sum, s) => sum + (s.package_price || 200000), 0);
+  const totalTerkumpul = paidSubscribers.reduce((sum, s) => sum + (s.package_price || 200000), 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !username) return;
 
     const pkg = packages.find((p) => p.id === selectedPackageId);
+    const finalPkgName = pkg?.package_name || editingSub?.package_name || 'Paket Up to 5 Mbps';
+    const finalPrice = customPrice || pkg?.price_monthly || 200000;
+
     if (editingSub) {
       onUpdateSubscriber({
         ...editingSub,
@@ -116,8 +145,9 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         pppoe_password: password.trim() || '123',
         full_name: fullName.trim(),
         package_id: selectedPackageId,
-        package_name: pkg?.package_name || editingSub.package_name || 'Paket Internet',
-        package_price: pkg?.price_monthly || editingSub.package_price || 100000,
+        package_name: finalPkgName,
+        package_price: finalPrice,
+        installation_fee: installationFee || 0,
         address: address.trim(),
         phone: phone.trim(),
         due_date: dueDate || 10,
@@ -128,8 +158,9 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         pppoe_password: password.trim() || '123',
         full_name: fullName.trim(),
         package_id: selectedPackageId,
-        package_name: pkg?.package_name || 'Paket Internet',
-        package_price: pkg?.price_monthly || 100000,
+        package_name: finalPkgName,
+        package_price: finalPrice,
+        installation_fee: installationFee || 0,
         address: address.trim(),
         phone: phone.trim(),
         status: 'active',
@@ -138,12 +169,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
       });
     }
 
-    setUsername('');
-    setPassword('123');
-    setFullName('');
-    setAddress('');
-    setPhone('');
-    setDueDate(10);
     setEditingSub(null);
     setShowModal(false);
   };
@@ -160,7 +185,8 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     const cleanPhone = getCleanPhone(sub.phone);
     if (!cleanPhone) return;
     const currentMonth = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
-    const text = `*KUITANSI PEMBAYARAN WIFI - ${businessName.toUpperCase()}*\n\nHalo Bapak/Ibu *${sub.full_name}*,\n\nTerima kasih! Pembayaran iuran WiFi Anda untuk periode *${currentMonth}* sebesar *${formatRupiah(sub.package_price || 100000)}* telah KAMI TERIMA (LUNAS ✅).\n\nUsername PPPoE: *${sub.username_pppoe}*\nPaket: *${sub.package_name}*\n\nSelamat menikmati koneksi internet cepat kami. Jika ada kendala, hubungi kami di nomor ini. 🙏`;
+    const methodStr = sub.payment_method ? ` (${sub.payment_method})` : '';
+    const text = `*KUITANSI PEMBAYARAN WIFI - ${businessName.toUpperCase()}*\n\nHalo Bapak/Ibu *${sub.full_name}*,\n\nTerima kasih! Pembayaran iuran WiFi Anda untuk periode *${currentMonth}* sebesar *${formatRupiah(sub.package_price || 200000)}* telah KAMI TERIMA${methodStr} (LUNAS ✅).\n\nUsername PPPoE: *${sub.username_pppoe}*\nPaket: *${sub.package_name}*\n\nSelamat menikmati koneksi internet cepat kami. Jika ada kendala, hubungi kami di nomor ini. 🙏`;
     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -168,7 +194,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     const cleanPhone = getCleanPhone(sub.phone);
     if (!cleanPhone) return;
     const currentMonth = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date());
-    const text = `*PEMBERITAHUAN TAGIHAN WIFI - ${businessName.toUpperCase()}*\n\nHalo Bapak/Ibu *${sub.full_name}*,\n\nMengingatkan tagihan WiFi periode *${currentMonth}* sebesar *${formatRupiah(sub.package_price || 100000)}* jatuh tempo pada *tanggal ${sub.due_date || 10}*.\n\nMohon melakukan pembayaran via transfer atau konfirmasi jika sudah membayar agar koneksi tetap lancar. Terima kasih! 🙏`;
+    const text = `*PEMBERITAHUAN TAGIHAN WIFI - ${businessName.toUpperCase()}*\n\nHalo Bapak/Ibu *${sub.full_name}*,\n\nMengingatkan tagihan WiFi periode *${currentMonth}* sebesar *${formatRupiah(sub.package_price || 200000)}* jatuh tempo pada *tanggal ${sub.due_date || 10}*.\n\nMohon melakukan pembayaran via transfer atau konfirmasi jika sudah membayar agar koneksi tetap lancar. Terima kasih! 🙏`;
     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -179,7 +205,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-400">
-              Kasir & Tagihan Bulan Ini
+              Kasir &amp; Tagihan Bulan Ini
             </p>
             <p className="text-2xl font-black text-slate-50 mt-0.5">
               {formatRupiah(totalTerkumpul)}
@@ -191,11 +217,11 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenMikrotikModal}
-              className="p-2.5 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors"
-              title="Export Script MikroTik"
+              className="p-2.5 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold"
+              title="Import / Export MikroTik"
             >
               <Terminal className="w-4 h-4" />
-              <span className="hidden sm:inline font-bold">MikroTik</span>
+              <span className="hidden sm:inline">MikroTik</span>
             </button>
             <button
               onClick={handleOpenAdd}
@@ -300,7 +326,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                           : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                       }`}
                     >
-                      {isPaid ? '✓ Lunas' : '⏳ Belum Bayar'}
+                      {isPaid ? `✓ Lunas${sub.payment_method ? ` (${sub.payment_method})` : ''}` : '⏳ Belum Bayar'}
                     </span>
                     {!isActive && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
@@ -317,15 +343,20 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                       <Calendar className="w-3 h-3" />
                       Jatuh Tempo: Tgl {sub.due_date || 10}
                     </span>
+                    {sub.installation_fee && sub.installation_fee > 0 && (
+                      <span className="text-[10px] text-amber-400 font-medium">
+                        PSB: {formatRupiah(sub.installation_fee)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="text-right">
                   <p className="font-black text-sm text-slate-100">
-                    {formatRupiah(sub.package_price || 100000)}
+                    {formatRupiah(sub.package_price || 200000)}
                   </p>
                   <span className="inline-block mt-0.5 text-[10px] font-semibold text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded-md border border-cyan-800/40">
-                    {sub.package_name || '10 Mbps'}
+                    {sub.package_name || '5 Mbps'}
                   </span>
                 </div>
               </div>
@@ -340,7 +371,13 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   {/* Payment Button */}
                   <button
-                    onClick={() => onTogglePayment(sub.id, isPaid ? 'unpaid' : 'paid')}
+                    onClick={() => {
+                      if (isPaid) {
+                        onCancelPayment(sub.id);
+                      } else {
+                        setPayingSub(sub);
+                      }
+                    }}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all ${
                       isPaid
                         ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
@@ -393,7 +430,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                   </button>
 
                   <button
-                    onClick={() => onDeleteSubscriber(sub.id)}
+                    onClick={() => setSubToDelete(sub)}
                     className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
                     title="Hapus Pelanggan"
                   >
@@ -412,7 +449,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         )}
       </div>
 
-      {/* Modal Tambah Subscriber */}
+      {/* Modal Tambah / Edit Subscriber */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition shadow-2xl">
@@ -467,20 +504,34 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                 </div>
               </div>
 
+              {/* Package Select */}
+              <div>
+                <label className="block text-slate-400 mb-1 font-medium">Paket PPPoE</label>
+                <select
+                  value={selectedPackageId}
+                  onChange={(e) => handlePackageChange(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-cyan-500"
+                >
+                  {packages.map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>
+                      {pkg.package_name} ({pkg.speed_limit}) - {formatRupiah(pkg.price_monthly)}/bln
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Paket PPPoE</label>
-                  <select
-                    value={selectedPackageId}
-                    onChange={(e) => setSelectedPackageId(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
-                  >
-                    {packages.map((pkg) => (
-                      <option key={pkg.id} value={pkg.id}>
-                        {pkg.package_name} ({pkg.speed_limit})
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-slate-400 mb-1 font-medium">Tarif Bulanan (Rp)</label>
+                  <input
+                    type="number"
+                    min="50000"
+                    step="10000"
+                    required
+                    value={customPrice}
+                    onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 200000)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                  />
                 </div>
                 <div>
                   <label className="block text-slate-400 mb-1 font-medium">Jatuh Tempo (Tgl)</label>
@@ -494,6 +545,25 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
                   />
                 </div>
+              </div>
+
+              {/* Biaya Pasang Baru / PSB */}
+              <div>
+                <label className="block text-slate-400 mb-1 font-medium">
+                  Biaya Pasang Baru / PSB (Opsional)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="50000"
+                  placeholder="0"
+                  value={installationFee || ''}
+                  onChange={(e) => setInstallationFee(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  Biaya registrasi awal untuk pengembalian modal belanja alat.
+                </p>
               </div>
 
               <div>
@@ -537,6 +607,71 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal Konfirmasi Pembayaran: Tunai vs Transfer Bank */}
+      {payingSub && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-sm space-y-4 page-transition shadow-2xl">
+            <div className="text-center space-y-1">
+              <p className="font-bold text-sm text-slate-100">Konfirmasi Terima Iuran</p>
+              <p className="text-xs text-slate-400">
+                Pelanggan: <span className="font-bold text-slate-200">{payingSub.full_name}</span>
+              </p>
+              <p className="text-lg font-black text-emerald-400 mt-1">
+                {formatRupiah(payingSub.package_price || 200000)}
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-300 text-center font-medium">
+              Pilih metode pembayaran yang diterima:
+            </p>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                onClick={() => {
+                  onConfirmPayment(payingSub.id, 'Tunai');
+                  setPayingSub(null);
+                }}
+                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200"
+              >
+                <Banknote className="w-5 h-5 text-emerald-400" />
+                Uang Tunai
+              </button>
+              <button
+                onClick={() => {
+                  onConfirmPayment(payingSub.id, 'Transfer Bank');
+                  setPayingSub(null);
+                }}
+                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200"
+              >
+                <CreditCard className="w-5 h-5 text-cyan-400" />
+                Transfer Bank
+              </button>
+            </div>
+
+            <button
+              onClick={() => setPayingSub(null)}
+              className="w-full py-2 rounded-xl bg-slate-800 text-slate-400 text-xs font-medium"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Delete */}
+      <ConfirmModal
+        isOpen={Boolean(subToDelete)}
+        title="Hapus Pelanggan PPPoE"
+        message={`Apakah Anda yakin ingin menghapus data pelanggan "${subToDelete?.full_name}" (${subToDelete?.username_pppoe})? Tindakan ini tidak dapat dibatalkan.`}
+        onConfirm={() => {
+          if (subToDelete) {
+            onDeleteSubscriber(subToDelete.id);
+            setSubToDelete(null);
+          }
+        }}
+        onCancel={() => setSubToDelete(null)}
+      />
     </div>
   );
 };

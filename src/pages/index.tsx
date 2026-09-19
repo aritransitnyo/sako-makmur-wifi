@@ -12,6 +12,8 @@ import { ShareReportModal } from '../components/ShareReportModal';
 import { MikrotikModal } from '../components/MikrotikModal';
 import { ResetWizardModal } from '../components/ResetWizardModal';
 import { MonthlyClosingModal } from '../components/MonthlyClosingModal';
+import { PrintReportModal } from '../components/PrintReportModal';
+import { AuthGate } from '../components/AuthGate';
 import {
   DataService,
   DEFAULT_SETTINGS,
@@ -34,6 +36,9 @@ import {
 } from '../types';
 
 export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loading, setLoading] = useState(true);
   const [isSupabase, setIsSupabase] = useState(false);
@@ -44,6 +49,7 @@ export default function Home() {
   const [showMikrotikModal, setShowMikrotikModal] = useState(false);
   const [showResetWizardModal, setShowResetWizardModal] = useState(false);
   const [showClosingModal, setShowClosingModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Core Data
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
@@ -53,6 +59,31 @@ export default function Home() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>(DEFAULT_SUBSCRIBERS);
   const [expenses, setExpenses] = useState<ExpenseTransaction[]>(DEFAULT_EXPENSES);
   const [closings, setClosings] = useState<MonthlyClosing[]>(DEFAULT_CLOSINGS);
+
+  // Check auth session
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedAuth = sessionStorage.getItem('smw_auth');
+      if (storedAuth === '1') {
+        setIsAuthenticated(true);
+      }
+      setAuthChecked(true);
+    }
+  }, []);
+
+  const handleAuthenticated = () => {
+    setIsAuthenticated(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('smw_auth', '1');
+    }
+  };
+
+  const handleLockApp = () => {
+    setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('smw_auth');
+    }
+  };
 
   const loadAllData = async () => {
     setLoading(true);
@@ -123,15 +154,60 @@ export default function Home() {
     DataService.saveSubscribers(updated);
   };
 
-  const handleTogglePayment = (id: string, newPaymentStatus: 'paid' | 'unpaid') => {
+  // Payment confirmation with automatic Buku Kas sync
+  const handleConfirmPayment = (id: string, method: 'Tunai' | 'Transfer Bank') => {
+    const targetSub = subscribers.find((s) => s.id === id);
+    if (!targetSub) return;
+
     const updated = subscribers.map((s) =>
       s.id === id
         ? {
             ...s,
-            payment_status: newPaymentStatus,
-            last_paid_at: newPaymentStatus === 'paid' ? new Date().toISOString() : s.last_paid_at,
+            payment_status: 'paid' as const,
+            payment_method: method,
+            last_paid_at: new Date().toISOString(),
           }
         : s
+    );
+    setSubscribers(updated);
+    DataService.saveSubscribers(updated);
+
+    // Auto-record cash-in transaction to Buku Kas
+    const newExpensesList = [...expenses];
+    const amount = targetSub.package_price || 200000;
+    const incomeEntry: ExpenseTransaction = {
+      id: `inc-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      type: 'income',
+      category: 'Iuran Bulanan Pelanggan',
+      amount: amount,
+      description: `Iuran ${targetSub.full_name} (${method})`,
+      fund_source: 'Kas Operasional',
+      created_at: new Date().toISOString(),
+    };
+    newExpensesList.unshift(incomeEntry);
+
+    // If there is an installation fee (PSB), record it to Kas Sisa Modal
+    if (targetSub.installation_fee && targetSub.installation_fee > 0) {
+      newExpensesList.unshift({
+        id: `inc-psb-${Date.now()}`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'income',
+        category: 'Biaya Pasang Baru (PSB)',
+        amount: targetSub.installation_fee,
+        description: `Biaya Pasang Baru ${targetSub.full_name} (${method})`,
+        fund_source: 'Kas Sisa Modal',
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    setExpenses(newExpensesList);
+    DataService.saveExpenses(newExpensesList);
+  };
+
+  const handleCancelPayment = (id: string) => {
+    const updated = subscribers.map((s) =>
+      s.id === id ? { ...s, payment_status: 'unpaid' as const } : s
     );
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
@@ -313,17 +389,32 @@ export default function Home() {
     loadAllData();
   };
 
-  // Financial Figures
+  // Financial Calculations
   const activeSubs = subscribers.filter((s) => s.status === 'active');
   const paidSubs = activeSubs.filter((s) => s.payment_status === 'paid');
   const realCashIn = paidSubs.reduce(
-    (sum, s) => sum + (s.package_price || 125000),
+    (sum, s) => sum + (s.package_price || 200000),
     0
   );
   const realCashOut = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   const reserveFund = realCashIn * (settings.reserve_fund_pct / 100);
   const netProfit = Math.max(0, realCashIn - realCashOut - reserveFund);
+
+  const totalCapital = investors.reduce((sum, inv) => sum + inv.capital_invested, 0);
+  const totalCapexSpent = capexItems.reduce((sum, item) => sum + item.total_price, 0);
+  const sisaKasModal = Math.max(0, totalCapital - totalCapexSpent);
+
+  // If auth gate is not yet verified
+  if (authChecked && !isAuthenticated) {
+    return (
+      <AuthGate
+        businessName={settings.business_name}
+        correctPin={settings.admin_pin || '1234'}
+        onAuthenticated={handleAuthenticated}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col justify-between selection:bg-cyan-500/30 selection:text-cyan-200 relative overflow-x-hidden">
@@ -339,6 +430,7 @@ export default function Home() {
         onOpenSqlModal={() => setShowSqlModal(true)}
         onOpenResetWizard={() => setShowResetWizardModal(true)}
         onOpenShareReport={() => setShowShareReportModal(true)}
+        onLockApp={handleLockApp}
         loading={loading}
       />
 
@@ -363,7 +455,8 @@ export default function Home() {
             onAddSubscriber={handleAddSubscriber}
             onUpdateSubscriber={handleUpdateSubscriber}
             onToggleStatus={handleToggleSubscriberStatus}
-            onTogglePayment={handleTogglePayment}
+            onConfirmPayment={handleConfirmPayment}
+            onCancelPayment={handleCancelPayment}
             onDeleteSubscriber={handleDeleteSubscriber}
             onOpenMikrotikModal={() => setShowMikrotikModal(true)}
           />
@@ -373,6 +466,7 @@ export default function Home() {
           <ExpensesView
             expenses={expenses}
             realCashIn={realCashIn}
+            sisaKasModal={sisaKasModal}
             onAddExpense={handleAddExpense}
             onUpdateExpense={handleUpdateExpense}
             onDeleteExpense={handleDeleteExpense}
@@ -392,11 +486,13 @@ export default function Home() {
         {activeTab === 'investors' && (
           <InvestorsView
             investors={investors}
+            closings={closings}
             netProfit={netProfit}
             onAddInvestor={handleAddInvestor}
             onUpdateInvestor={handleUpdateInvestor}
             onDeleteInvestor={handleDeleteInvestor}
             onOpenClosingModal={() => setShowClosingModal(true)}
+            onOpenPrintModal={() => setShowPrintModal(true)}
           />
         )}
 
@@ -459,6 +555,16 @@ export default function Home() {
         onSaveClosing={handleSaveClosing}
         onToggleDividendPaid={handleToggleDividendPaid}
         onDeleteClosing={handleDeleteClosing}
+      />
+
+      <PrintReportModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        settings={settings}
+        investors={investors}
+        subscribers={subscribers}
+        expenses={expenses}
+        capexItems={capexItems}
       />
     </div>
   );
