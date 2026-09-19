@@ -413,7 +413,7 @@ export default function Home() {
     return (
       <AuthGate
         businessName={settings.business_name}
-        correctPin={settings.admin_pin || '1234'}
+        correctPin={settings.admin_pin || '140320'}
         onAuthenticated={handleAuthenticated}
       />
     );

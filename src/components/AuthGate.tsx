@@ -15,9 +15,11 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
 
+  const targetPin = correctPin || '140320';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin.trim() === (correctPin || '1234')) {
+    if (pin.trim() === targetPin) {
       setError(false);
       onAuthenticated();
     } else {
@@ -30,7 +32,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
     if (pin.length < 6) {
       const next = pin + num;
       setPin(next);
-      if (next === (correctPin || '1234')) {
+      if (next === targetPin) {
         setTimeout(onAuthenticated, 150);
       }
     }
@@ -65,8 +67,8 @@ export const AuthGate: React.FC<AuthGateProps> = ({
         {/* PIN Input Box */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <div className="flex justify-center gap-3 my-2">
-              {[0, 1, 2, 3].map((idx) => (
+            <div className="flex justify-center gap-2.5 my-3">
+              {[0, 1, 2, 3, 4, 5].map((idx) => (
                 <div
                   key={idx}
                   className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
@@ -81,8 +83,8 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             </div>
 
             {error && (
-              <p className="text-xs text-rose-400 font-medium">
-                PIN Salah. Silakan coba lagi. (Default: 1234)
+              <p className="text-xs text-rose-400 font-medium animate-shake">
+                PIN Salah. Silakan periksa kembali.
               </p>
             )}
           </div>
@@ -129,10 +131,6 @@ export const AuthGate: React.FC<AuthGateProps> = ({
             <KeyRound className="w-4 h-4" /> Masuk ke Aplikasi
           </button>
         </form>
-
-        <p className="text-[11px] text-slate-500">
-          PIN Keamanan Default: <strong className="text-slate-400">1234</strong>
-        </p>
       </div>
     </div>
   );

@@ -18,7 +18,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   collector_fee_per_user: 5000,
   marketing_fee_monthly: 250000,
   reserve_fund_pct: 10.0,
-  admin_pin: '1234',
+  admin_pin: '140320',
 };
 
 export const DEFAULT_INVESTORS: Investor[] = [

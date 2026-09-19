@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { supabase } from '../../lib/supabaseClient';
 import { getServerState } from '../../lib/serverState';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
@@ -9,76 +10,107 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(200).end();
   }
 
-  const state = getServerState();
-  const settings = state.settings;
-  const investors = state.investors;
-  const subscribers = state.subscribers;
-  const expenses = state.expenses;
-  const capex = state.capex;
+  try {
+    // 1. Fetch settings from Supabase
+    const { data: settingsData } = await supabase
+      .from('business_settings')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
 
-  // Real calculations
-  const activeSubs = subscribers.filter((s) => s.status === 'active');
-  const paidSubs = activeSubs.filter((s) => s.payment_status === 'paid');
+    const fallbackState = getServerState();
+    const settings = settingsData || fallbackState.settings;
 
-  const totalOmzet = paidSubs.reduce(
-    (sum, s) => sum + (s.package_price || 200000),
-    0
-  );
+    // 2. Fetch investors from Supabase
+    const { data: investorsData } = await supabase
+      .from('investors')
+      .select('*')
+      .order('capital_invested', { ascending: false });
 
-  const collectorFeePerUser = settings.collector_fee_per_user ?? 5000;
-  const totalCollectorFee = paidSubs.length * collectorFeePerUser;
-  const marketingFee = settings.marketing_fee_monthly ?? 250000;
-  const reserveFundPct = settings.reserve_fund_pct ?? 10.0;
-  const reserveFundAmount = Math.round(totalOmzet * (reserveFundPct / 100));
+    const investors = investorsData && investorsData.length > 0 ? investorsData : fallbackState.investors;
 
-  const totalOpex =
-    settings.starlink_cost +
-    settings.node_power_cost +
-    settings.operator_salary +
-    totalCollectorFee +
-    marketingFee +
-    reserveFundAmount;
+    // 3. Fetch subscribers from Supabase
+    const { data: subsData } = await supabase
+      .from('subscribers')
+      .select('*')
+      .order('created_at', { ascending: true });
 
-  const netProfit = Math.max(0, totalOmzet - totalOpex);
+    const subscribers = subsData && subsData.length > 0 ? subsData : fallbackState.subscribers;
 
-  const investorDividends = investors.map((inv) => ({
-    ...inv,
-    dividend_amount: Math.round((netProfit * inv.share_percentage) / 100),
-  }));
+    // 4. Fetch capex from Supabase
+    const { data: capexData } = await supabase
+      .from('capex_items')
+      .select('*');
 
-  const totalModal = investors.reduce((sum, i) => sum + i.capital_invested, 0);
-  const totalCapexSpent = capex.reduce((sum, c) => sum + c.total_price, 0);
-  const sisaKasModal = Math.max(0, totalModal - totalCapexSpent);
+    const capex = capexData && capexData.length > 0 ? capexData : fallbackState.capex;
 
-  return res.status(200).json({
-    status: 'success',
-    business_name: settings.business_name,
-    total_modal: totalModal,
-    capex_spent: totalCapexSpent,
-    sisa_kas_modal: sisaKasModal,
-    total_subscribers_count: subscribers.length,
-    active_subscribers_count: activeSubs.length,
-    paid_subscribers_count: paidSubs.length,
-    total_omzet: totalOmzet,
-    starlink_cost: settings.starlink_cost,
-    node_power_cost: settings.node_power_cost,
-    operator_salary: settings.operator_salary,
-    collector_fee: totalCollectorFee,
-    collector_fee_per_user: collectorFeePerUser,
-    marketing_fee: marketingFee,
-    reserve_fund_pct: reserveFundPct,
-    reserve_fund_amount: reserveFundAmount,
-    total_opex: totalOpex,
-    net_profit: netProfit,
-    investors: investorDividends,
-    subscribers: subscribers.map((s) => ({
-      name: s.full_name,
-      username: s.username_pppoe,
-      package: s.package_name,
-      price: s.package_price,
-      status: s.status,
-      payment: s.payment_status,
-      address: s.address,
-    })),
-  });
+    // Calculations
+    const activeSubs = subscribers.filter((s: any) => s.status === 'active');
+    const paidSubs = activeSubs.filter((s: any) => s.payment_status === 'paid');
+
+    const totalOmzet = paidSubs.reduce(
+      (sum: number, s: any) => sum + (Number(s.package_price) || 200000),
+      0
+    );
+
+    const collectorFeePerUser = Number(settings.collector_fee_per_user) || 5000;
+    const totalCollectorFee = paidSubs.length * collectorFeePerUser;
+    const marketingFee = Number(settings.marketing_fee_monthly) || 250000;
+    const reserveFundPct = Number(settings.reserve_fund_pct) || 10.0;
+    const reserveFundAmount = Math.round(totalOmzet * (reserveFundPct / 100));
+
+    const totalOpex =
+      Number(settings.starlink_cost) +
+      Number(settings.node_power_cost) +
+      Number(settings.operator_salary) +
+      totalCollectorFee +
+      marketingFee +
+      reserveFundAmount;
+
+    const netProfit = Math.max(0, totalOmzet - totalOpex);
+
+    const investorDividends = investors.map((inv: any) => ({
+      ...inv,
+      dividend_amount: Math.round((netProfit * Number(inv.share_percentage)) / 100),
+    }));
+
+    const totalModal = investors.reduce((sum: number, i: any) => sum + Number(i.capital_invested), 0);
+    const totalCapexSpent = capex.reduce((sum: number, c: any) => sum + Number(c.total_price), 0);
+    const sisaKasModal = Math.max(0, totalModal - totalCapexSpent);
+
+    return res.status(200).json({
+      status: 'success',
+      source: settingsData ? 'supabase_live' : 'server_cache',
+      business_name: settings.business_name,
+      total_modal: totalModal,
+      capex_spent: totalCapexSpent,
+      sisa_kas_modal: sisaKasModal,
+      total_subscribers_count: subscribers.length,
+      active_subscribers_count: activeSubs.length,
+      paid_subscribers_count: paidSubs.length,
+      total_omzet: totalOmzet,
+      starlink_cost: Number(settings.starlink_cost),
+      node_power_cost: Number(settings.node_power_cost),
+      operator_salary: Number(settings.operator_salary),
+      collector_fee: totalCollectorFee,
+      collector_fee_per_user: collectorFeePerUser,
+      marketing_fee: marketingFee,
+      reserve_fund_pct: reserveFundPct,
+      reserve_fund_amount: reserveFundAmount,
+      total_opex: totalOpex,
+      net_profit: netProfit,
+      investors: investorDividends,
+      subscribers: subscribers.map((s: any) => ({
+        name: s.full_name,
+        username: s.username_pppoe,
+        package: s.package_name,
+        price: Number(s.package_price),
+        status: s.status,
+        payment: s.payment_status,
+        address: s.address,
+      })),
+    });
+  } catch (err: any) {
+    return res.status(500).json({ status: 'error', message: err.message });
+  }
 }
