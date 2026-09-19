@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PieChart, Plus, Trash2, Shield, UserCheck, Percent, Edit3 } from 'lucide-react';
+import { PieChart, Plus, Trash2, Shield, UserCheck, Percent, Edit3, History } from 'lucide-react';
 import { Investor } from '../types';
 import { formatRupiah } from './MetricCard';
 
@@ -9,6 +9,7 @@ interface InvestorsViewProps {
   onAddInvestor: (inv: Omit<Investor, 'id'>) => void;
   onUpdateInvestor: (inv: Investor) => void;
   onDeleteInvestor: (id: string) => void;
+  onOpenClosingModal: () => void;
 }
 
 export const InvestorsView: React.FC<InvestorsViewProps> = ({
@@ -17,6 +18,7 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
   onAddInvestor,
   onUpdateInvestor,
   onDeleteInvestor,
+  onOpenClosingModal,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingInvestor, setEditingInvestor] = useState<Investor | null>(null);
@@ -89,13 +91,23 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
               Laba Bersih Siap Bagi: <span className="text-emerald-400 font-bold">{formatRupiah(netProfit)}</span>
             </p>
           </div>
-          <button
-            onClick={handleOpenAdd}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            Tambah
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onOpenClosingModal}
+              className="p-2.5 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold shadow"
+              title="Tutup Buku Bulanan & Arsip Dividen"
+            >
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">Tutup Buku</span>
+            </button>
+            <button
+              onClick={handleOpenAdd}
+              className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              Tambah
+            </button>
+          </div>
         </div>
 
         {/* Saham check */}

@@ -6,6 +6,8 @@ import {
   PppoePackage,
   Subscriber,
   ExpenseTransaction,
+  MonthlyClosing,
+  InvestorDividendSnapshot,
 } from '../types';
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
@@ -45,22 +47,34 @@ export const DEFAULT_INVESTORS: Investor[] = [
 
 export const DEFAULT_PACKAGES: PppoePackage[] = [
   {
-    id: 'pkg-1',
-    package_name: 'Paket Hemat 10 Mbps',
-    speed_limit: '10 Mbps',
-    price_monthly: 100000,
-  },
-  {
-    id: 'pkg-2',
-    package_name: 'Paket Keluarga 20 Mbps',
-    speed_limit: '20 Mbps',
-    price_monthly: 150000,
-  },
-  {
-    id: 'pkg-3',
-    package_name: 'Paket Usaha 30 Mbps',
-    speed_limit: '30 Mbps',
+    id: 'pkg-5m',
+    package_name: 'Paket Up to 5 Mbps',
+    speed_limit: '5 Mbps',
     price_monthly: 200000,
+  },
+  {
+    id: 'pkg-8m',
+    package_name: 'Paket Up to 8 Mbps',
+    speed_limit: '8 Mbps',
+    price_monthly: 250000,
+  },
+  {
+    id: 'pkg-10m',
+    package_name: 'Paket Up to 10 Mbps',
+    speed_limit: '10 Mbps',
+    price_monthly: 300000,
+  },
+  {
+    id: 'pkg-15m',
+    package_name: 'Paket Up to 15 Mbps',
+    speed_limit: '15 Mbps',
+    price_monthly: 400000,
+  },
+  {
+    id: 'pkg-20m',
+    package_name: 'UMKM & KANTOR (Up to 20 Mbps)',
+    speed_limit: '20 Mbps',
+    price_monthly: 500000,
   },
 ];
 
@@ -136,9 +150,9 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     username_pppoe: 'sako_rt01_budi',
     pppoe_password: '123',
     full_name: 'Budi Kurniawan',
-    package_id: 'pkg-2',
-    package_name: 'Paket Keluarga 20 Mbps',
-    package_price: 150000,
+    package_id: 'pkg-8m',
+    package_name: 'Paket Up to 8 Mbps',
+    package_price: 250000,
     address: 'RT 01 / RW 02 No. 12',
     phone: '081234567801',
     status: 'active',
@@ -151,9 +165,9 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     username_pppoe: 'sako_rt01_warno',
     pppoe_password: '123',
     full_name: 'Warno Sucipto',
-    package_id: 'pkg-1',
-    package_name: 'Paket Hemat 10 Mbps',
-    package_price: 100000,
+    package_id: 'pkg-5m',
+    package_name: 'Paket Up to 5 Mbps',
+    package_price: 200000,
     address: 'RT 01 / RW 02 No. 18',
     phone: '081234567802',
     status: 'active',
@@ -166,9 +180,9 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     username_pppoe: 'sako_rt02_warung',
     pppoe_password: '123',
     full_name: 'Warung Bu Siti',
-    package_id: 'pkg-3',
-    package_name: 'Paket Usaha 30 Mbps',
-    package_price: 200000,
+    package_id: 'pkg-20m',
+    package_name: 'UMKM & KANTOR (Up to 20 Mbps)',
+    package_price: 500000,
     address: 'RT 02 / RW 02 Depan Lapangan',
     phone: '081234567803',
     status: 'active',
@@ -180,9 +194,9 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     username_pppoe: 'sako_rt02_hendra',
     pppoe_password: '123',
     full_name: 'Hendra Wijaya',
-    package_id: 'pkg-2',
-    package_name: 'Paket Keluarga 20 Mbps',
-    package_price: 150000,
+    package_id: 'pkg-10m',
+    package_name: 'Paket Up to 10 Mbps',
+    package_price: 300000,
     address: 'RT 02 / RW 02 No. 05',
     phone: '081234567804',
     status: 'active',
@@ -194,9 +208,9 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     username_pppoe: 'sako_rt03_agus',
     pppoe_password: '123',
     full_name: 'Agus Purnomo',
-    package_id: 'pkg-1',
-    package_name: 'Paket Hemat 10 Mbps',
-    package_price: 100000,
+    package_id: 'pkg-5m',
+    package_name: 'Paket Up to 5 Mbps',
+    package_price: 200000,
     address: 'RT 03 / RW 02 No. 09',
     phone: '081234567805',
     status: 'active',
@@ -209,9 +223,9 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     username_pppoe: 'sako_rt03_dedi',
     pppoe_password: '123',
     full_name: 'Dedi Irawan',
-    package_id: 'pkg-2',
-    package_name: 'Paket Keluarga 20 Mbps',
-    package_price: 150000,
+    package_id: 'pkg-8m',
+    package_name: 'Paket Up to 8 Mbps',
+    package_price: 250000,
     address: 'RT 03 / RW 02 No. 22',
     phone: '081234567806',
     status: 'suspended',
@@ -248,6 +262,53 @@ export const DEFAULT_EXPENSES: ExpenseTransaction[] = [
     category: 'Bensin & Transport',
     amount: 75000,
     description: 'Patroli jalur kabel FO & cek tiang',
+  },
+];
+
+export const DEFAULT_CLOSINGS: MonthlyClosing[] = [
+  {
+    id: 'close-2026-08',
+    period_month: 'Agustus 2026',
+    period_key: '2026-08',
+    closed_at: '2026-08-31T23:59:00.000Z',
+    closed_by: 'Anton (Managing Owner)',
+    active_subscribers_count: 26,
+    paid_subscribers_count: 26,
+    gross_revenue: 3900000,
+    total_expenses: 2225000,
+    reserve_fund_amount: 390000,
+    reserve_fund_pct: 10.0,
+    net_profit: 1285000,
+    investor_dividends: [
+      {
+        investor_id: 'inv-1',
+        name: 'Anton (Managing Owner)',
+        role: 'Managing Owner',
+        share_percentage: 60.0,
+        dividend_amount: 771000,
+        paid_status: 'paid',
+        paid_at: '2026-09-01T10:00:00.000Z',
+      },
+      {
+        investor_id: 'inv-2',
+        name: 'Budi Santoso',
+        role: 'Investor',
+        share_percentage: 20.0,
+        dividend_amount: 257000,
+        paid_status: 'paid',
+        paid_at: '2026-09-01T10:15:00.000Z',
+      },
+      {
+        investor_id: 'inv-3',
+        name: 'Haji Rahmat',
+        role: 'Investor',
+        share_percentage: 20.0,
+        dividend_amount: 257000,
+        paid_status: 'paid',
+        paid_at: '2026-09-01T10:20:00.000Z',
+      },
+    ],
+    notes: 'Tutup buku bulan Agustus 2026. Semua dividen sudah ditransfer lunas ke rekening investor.',
   },
 ];
 
@@ -386,6 +447,26 @@ export class DataService {
     this.setLocal('expenses', expenses);
   }
 
+  // Monthly Closings (Riwayat Tutup Buku & Dividen)
+  static async getMonthlyClosings(): Promise<{ data: MonthlyClosing[]; isSupabase: boolean }> {
+    try {
+      const { data, error } = await supabase.from('monthly_closings').select('*').order('closed_at', { ascending: false });
+      if (!error && data && data.length > 0) {
+        return { data, isSupabase: true };
+      }
+    } catch {}
+    return { data: this.getLocal('closings', DEFAULT_CLOSINGS), isSupabase: false };
+  }
+
+  static async saveMonthlyClosings(closings: MonthlyClosing[]): Promise<void> {
+    this.setLocal('closings', closings);
+    try {
+      for (const item of closings) {
+        await supabase.from('monthly_closings').upsert(item);
+      }
+    } catch {}
+  }
+
   // Reset to Zero (Mulai dari Nol untuk Bisnis Baru)
   static resetToZero(businessName: string): void {
     if (!this.isClient) return;
@@ -409,6 +490,7 @@ export class DataService {
     this.setLocal('subscribers', []);
     this.setLocal('capex', []);
     this.setLocal('expenses', []);
+    this.setLocal('closings', []);
   }
 
   // Reset back to sample demo data
@@ -420,6 +502,7 @@ export class DataService {
     this.setLocal('capex', DEFAULT_CAPEX);
     this.setLocal('subscribers', DEFAULT_SUBSCRIBERS);
     this.setLocal('expenses', DEFAULT_EXPENSES);
+    this.setLocal('closings', DEFAULT_CLOSINGS);
   }
 }
 
@@ -478,6 +561,24 @@ CREATE TABLE IF NOT EXISTS subscribers (
     due_date INT DEFAULT 10,
     payment_status TEXT DEFAULT 'unpaid',
     last_paid_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+CREATE TABLE IF NOT EXISTS monthly_closings (
+    id TEXT PRIMARY KEY,
+    period_month TEXT NOT NULL,
+    period_key TEXT NOT NULL,
+    closed_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    closed_by TEXT NOT NULL,
+    active_subscribers_count INT DEFAULT 0,
+    paid_subscribers_count INT DEFAULT 0,
+    gross_revenue NUMERIC(12,2) DEFAULT 0,
+    total_expenses NUMERIC(12,2) DEFAULT 0,
+    reserve_fund_amount NUMERIC(12,2) DEFAULT 0,
+    reserve_fund_pct NUMERIC(5,2) DEFAULT 10.00,
+    net_profit NUMERIC(12,2) DEFAULT 0,
+    investor_dividends JSONB NOT NULL DEFAULT '[]'::jsonb,
+    notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 `;

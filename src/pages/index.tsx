@@ -11,6 +11,7 @@ import { SqlModal } from '../components/SqlModal';
 import { ShareReportModal } from '../components/ShareReportModal';
 import { MikrotikModal } from '../components/MikrotikModal';
 import { ResetWizardModal } from '../components/ResetWizardModal';
+import { MonthlyClosingModal } from '../components/MonthlyClosingModal';
 import {
   DataService,
   DEFAULT_SETTINGS,
@@ -19,6 +20,7 @@ import {
   DEFAULT_CAPEX,
   DEFAULT_SUBSCRIBERS,
   DEFAULT_EXPENSES,
+  DEFAULT_CLOSINGS,
 } from '../lib/dataStore';
 import {
   TabType,
@@ -28,6 +30,7 @@ import {
   PppoePackage,
   Subscriber,
   ExpenseTransaction,
+  MonthlyClosing,
 } from '../types';
 
 export default function Home() {
@@ -40,6 +43,7 @@ export default function Home() {
   const [showShareReportModal, setShowShareReportModal] = useState(false);
   const [showMikrotikModal, setShowMikrotikModal] = useState(false);
   const [showResetWizardModal, setShowResetWizardModal] = useState(false);
+  const [showClosingModal, setShowClosingModal] = useState(false);
 
   // Core Data
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
@@ -48,11 +52,12 @@ export default function Home() {
   const [capexItems, setCapexItems] = useState<CapexItem[]>(DEFAULT_CAPEX);
   const [subscribers, setSubscribers] = useState<Subscriber[]>(DEFAULT_SUBSCRIBERS);
   const [expenses, setExpenses] = useState<ExpenseTransaction[]>(DEFAULT_EXPENSES);
+  const [closings, setClosings] = useState<MonthlyClosing[]>(DEFAULT_CLOSINGS);
 
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [resSettings, resInvestors, resCapex, resPackages, resSubs, resExpenses] =
+      const [resSettings, resInvestors, resCapex, resPackages, resSubs, resExpenses, resClosings] =
         await Promise.all([
           DataService.getSettings(),
           DataService.getInvestors(),
@@ -60,6 +65,7 @@ export default function Home() {
           DataService.getPackages(),
           DataService.getSubscribers(),
           DataService.getExpenses(),
+          DataService.getMonthlyClosings(),
         ]);
 
       setSettings(resSettings.data);
@@ -68,12 +74,14 @@ export default function Home() {
       setPackages(resPackages.data);
       setSubscribers(resSubs.data);
       setExpenses(resExpenses.data);
+      setClosings(resClosings.data);
 
       setIsSupabase(
         resSettings.isSupabase ||
           resInvestors.isSupabase ||
           resCapex.isSupabase ||
-          resSubs.isSupabase
+          resSubs.isSupabase ||
+          resClosings.isSupabase
       );
     } catch (err) {
       console.error('Error loading data:', err);
@@ -214,6 +222,86 @@ export default function Home() {
     DataService.updateSettings(updatedSettings);
   };
 
+  // Import from MikroTik Handler
+  const handleImportMikrotik = (
+    newSubs: Subscriber[],
+    replaceExisting: boolean,
+    newPackages: PppoePackage[]
+  ) => {
+    let finalSubs: Subscriber[] = [];
+    if (replaceExisting) {
+      finalSubs = newSubs;
+    } else {
+      const map = new Map<string, Subscriber>();
+      subscribers.forEach((s) => map.set(s.username_pppoe, s));
+      newSubs.forEach((s) => map.set(s.username_pppoe, s));
+      finalSubs = Array.from(map.values());
+    }
+
+    setSubscribers(finalSubs);
+    DataService.saveSubscribers(finalSubs);
+
+    if (newPackages && newPackages.length > 0) {
+      const pkgMap = new Map<string, PppoePackage>();
+      packages.forEach((p) => pkgMap.set(p.package_name.toLowerCase(), p));
+      newPackages.forEach((p) => {
+        if (!pkgMap.has(p.package_name.toLowerCase())) {
+          pkgMap.set(p.package_name.toLowerCase(), p);
+        }
+      });
+      const finalPackages = Array.from(pkgMap.values());
+      setPackages(finalPackages);
+      DataService.savePackages(finalPackages);
+    }
+  };
+
+  // Monthly Closing Handlers
+  const handleSaveClosing = (
+    closing: MonthlyClosing,
+    resetSubscriberPayments: boolean
+  ) => {
+    const updatedClosings = [closing, ...closings];
+    setClosings(updatedClosings);
+    DataService.saveMonthlyClosings(updatedClosings);
+
+    if (resetSubscriberPayments) {
+      const resetSubs = subscribers.map((s) => ({
+        ...s,
+        payment_status: 'unpaid' as const,
+      }));
+      setSubscribers(resetSubs);
+      DataService.saveSubscribers(resetSubs);
+    }
+  };
+
+  const handleToggleDividendPaid = (
+    closingId: string,
+    investorId: string,
+    newStatus: 'paid' | 'pending'
+  ) => {
+    const updated = closings.map((c) => {
+      if (c.id !== closingId) return c;
+      const updatedDivs = c.investor_dividends.map((inv) =>
+        inv.investor_id === investorId
+          ? {
+              ...inv,
+              paid_status: newStatus,
+              paid_at: newStatus === 'paid' ? new Date().toISOString() : undefined,
+            }
+          : inv
+      );
+      return { ...c, investor_dividends: updatedDivs };
+    });
+    setClosings(updated);
+    DataService.saveMonthlyClosings(updated);
+  };
+
+  const handleDeleteClosing = (closingId: string) => {
+    const updated = closings.filter((c) => c.id !== closingId);
+    setClosings(updated);
+    DataService.saveMonthlyClosings(updated);
+  };
+
   // Reset Handlers
   const handleResetToZero = (name: string) => {
     DataService.resetToZero(name);
@@ -308,6 +396,7 @@ export default function Home() {
             onAddInvestor={handleAddInvestor}
             onUpdateInvestor={handleUpdateInvestor}
             onDeleteInvestor={handleDeleteInvestor}
+            onOpenClosingModal={() => setShowClosingModal(true)}
           />
         )}
 
@@ -348,6 +437,7 @@ export default function Home() {
         onClose={() => setShowMikrotikModal(false)}
         subscribers={subscribers}
         packages={packages}
+        onImportSubscribers={handleImportMikrotik}
       />
 
       <ResetWizardModal
@@ -356,6 +446,19 @@ export default function Home() {
         currentBusinessName={settings.business_name}
         onResetToZero={handleResetToZero}
         onResetToDemo={handleResetToDemo}
+      />
+
+      <MonthlyClosingModal
+        isOpen={showClosingModal}
+        onClose={() => setShowClosingModal(false)}
+        settings={settings}
+        investors={investors}
+        subscribers={subscribers}
+        expenses={expenses}
+        closings={closings}
+        onSaveClosing={handleSaveClosing}
+        onToggleDividendPaid={handleToggleDividendPaid}
+        onDeleteClosing={handleDeleteClosing}
       />
     </div>
   );

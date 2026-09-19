@@ -70,4 +70,31 @@ export interface ReserveFundTransaction {
   created_at?: string;
 }
 
+export interface InvestorDividendSnapshot {
+  investor_id: string;
+  name: string;
+  role: string;
+  share_percentage: number;
+  dividend_amount: number;
+  paid_status: 'paid' | 'pending';
+  paid_at?: string;
+}
+
+export interface MonthlyClosing {
+  id: string;
+  period_month: string; // e.g. "September 2026"
+  period_key: string;   // e.g. "2026-09"
+  closed_at: string;
+  closed_by: string;
+  active_subscribers_count: number;
+  paid_subscribers_count: number;
+  gross_revenue: number;
+  total_expenses: number;
+  reserve_fund_amount: number;
+  reserve_fund_pct: number;
+  net_profit: number;
+  investor_dividends: InvestorDividendSnapshot[];
+  notes?: string;
+}
+
 export type TabType = 'dashboard' | 'subscribers' | 'expenses' | 'capex' | 'investors' | 'simulator';
