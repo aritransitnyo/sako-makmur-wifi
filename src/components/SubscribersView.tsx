@@ -20,10 +20,12 @@ import {
   CreditCard,
   Banknote,
   Server,
+  Receipt,
 } from 'lucide-react';
 import { Subscriber, PppoePackage } from '../types';
 import { formatRupiah } from './MetricCard';
 import { ConfirmModal } from './ConfirmModal';
+import { ReceiptModal } from './ReceiptModal';
 
 interface SubscribersViewProps {
   businessName: string;
@@ -64,6 +66,9 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
 
   // Payment Confirmation Modal (Tunai vs Transfer Bank)
   const [payingSub, setPayingSub] = useState<Subscriber | null>(null);
+
+  // Kuitansi Modal State
+  const [receiptSub, setReceiptSub] = useState<{ sub: Subscriber; method?: string } | null>(null);
 
   // Form State
   const [username, setUsername] = useState('');
@@ -408,25 +413,27 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                     {isPaid ? 'Batal Lunas' : 'Terima Bayar'}
                   </button>
 
-                  {/* WhatsApp Action */}
-                  {hasPhone && (
-                    isPaid ? (
-                      <button
-                        onClick={() => sendReceiptWhatsApp(sub)}
-                        className="p-1.5 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 hover:bg-emerald-900/60 transition-colors"
-                        title="Kirim Kuitansi WhatsApp"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => sendReminderWhatsApp(sub)}
-                        className="p-1.5 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/50 hover:bg-amber-900/60 transition-colors"
-                        title="Kirim Pengingat Tagihan WhatsApp"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                      </button>
-                    )
+                  {/* Kuitansi Resmi Pelanggan (LSM NetOS) - Jika Sudah Lunas */}
+                  {isPaid && (
+                    <button
+                      onClick={() => setReceiptSub({ sub, method: sub.payment_method || 'Lunas' })}
+                      className="p-1.5 rounded-lg bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-900/80 transition-all flex items-center gap-1 text-[10px] font-bold shadow-sm"
+                      title="Lihat / Cetak / Kirim Kuitansi Resmi LSM NetOS"
+                    >
+                      <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="hidden sm:inline">Kuitansi</span>
+                    </button>
+                  )}
+
+                  {/* WhatsApp Reminder (Jika Belum Lunas) */}
+                  {!isPaid && hasPhone && (
+                    <button
+                      onClick={() => sendReminderWhatsApp(sub)}
+                      className="p-1.5 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/50 hover:bg-amber-900/60 transition-colors"
+                      title="Kirim Pengingat Tagihan WhatsApp"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                    </button>
                   )}
 
                   {/* Isolir toggle */}
@@ -632,6 +639,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
               <button
                 onClick={() => {
                   onConfirmPayment(payingSub.id, 'Tunai');
+                  setReceiptSub({ sub: { ...payingSub, payment_status: 'paid', payment_method: 'Tunai' }, method: 'Tunai' });
                   setPayingSub(null);
                 }}
                 className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200"
@@ -642,6 +650,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
               <button
                 onClick={() => {
                   onConfirmPayment(payingSub.id, 'Transfer Bank');
+                  setReceiptSub({ sub: { ...payingSub, payment_status: 'paid', payment_method: 'Transfer Bank' }, method: 'Transfer Bank' });
                   setPayingSub(null);
                 }}
                 className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200"
@@ -673,6 +682,14 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
           }
         }}
         onCancel={() => setSubToDelete(null)}
+      />
+
+      {/* Kuitansi Resmi Pelanggan (LSM NetOS) Modal */}
+      <ReceiptModal
+        isOpen={Boolean(receiptSub)}
+        onClose={() => setReceiptSub(null)}
+        subscriber={receiptSub?.sub || null}
+        paymentMethod={receiptSub?.method || 'Transfer Bank'}
       />
     </div>
   );
