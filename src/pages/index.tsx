@@ -15,7 +15,7 @@ import { MonthlyClosingModal } from '../components/MonthlyClosingModal';
 import { PrintReportModal } from '../components/PrintReportModal';
 import { BroadcastModal } from '../components/BroadcastModal';
 import { AuthGate } from '../components/AuthGate';
-import { calculateFinancials } from '../lib/financialCalculations';
+import { calculateFinancials, getActivePeriodInfo } from '../lib/financialCalculations';
 import {
   DataService,
   DEFAULT_SETTINGS,
@@ -326,43 +326,49 @@ export default function Home() {
   };
 
   const handleSyncRoutineExpenses = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const { activePeriodKey, activePeriodMonth } = getActivePeriodInfo(closings);
+    const periodDate = `${activePeriodKey}-01`;
     const paidCount = subscribers.filter((s) => s.status === 'active' && s.payment_status === 'paid').length;
 
     const routineDefinitions = [
       {
         key: 'starlink',
+        id: `exp-starlink-${activePeriodKey}`,
         category: 'Langganan Starlink',
         amount: Number(settings.starlink_cost ?? 850000),
-        description: 'Tagihan bulanan Starlink Standard Kit',
+        description: `Tagihan bulanan Starlink Standard Kit (${activePeriodMonth})`,
         fund_source: 'Kas Operasional' as const,
       },
       {
         key: 'power',
+        id: `exp-power-${activePeriodKey}`,
         category: 'Listrik & Token PLN',
         amount: Number(settings.node_power_cost ?? 300000),
-        description: 'Token listrik PLN Node RT 01 & UPS',
+        description: `Token listrik PLN Node RT 01 & UPS (${activePeriodMonth})`,
         fund_source: 'Kas Operasional' as const,
       },
       {
         key: 'operator',
+        id: `exp-operator-${activePeriodKey}`,
         category: 'Gaji Operator',
         amount: Number(settings.operator_salary ?? 500000),
-        description: 'Uang operasional & maintenance jaringan (Tahap Awal)',
+        description: `Uang operasional & maintenance jaringan (${activePeriodMonth})`,
         fund_source: 'Kas Operasional' as const,
       },
       {
         key: 'marketing',
+        id: `exp-marketing-${activePeriodKey}`,
         category: 'Komisi Marketing',
         amount: Number(settings.marketing_fee_monthly ?? 50000),
-        description: 'Komisi & insentif marketing rutin bulanan (Tahap Awal)',
+        description: `Komisi marketing rutin bulanan (${activePeriodMonth})`,
         fund_source: 'Kas Operasional' as const,
       },
       {
         key: 'collector',
+        id: `exp-collector-${activePeriodKey}`,
         category: 'Jasa Tagih Lapangan',
         amount: paidCount * Number(settings.collector_fee_per_user ?? 5000),
-        description: `Jasa tagih iuran ${paidCount} user lunas x Rp 5.000`,
+        description: `Jasa tagih iuran ${paidCount} user lunas x Rp 5.000 (${activePeriodMonth})`,
         fund_source: 'Kas Operasional' as const,
       },
     ];
@@ -372,16 +378,19 @@ export default function Home() {
     let updatedCount = 0;
 
     routineDefinitions.forEach((def) => {
+      // Find matching expense strictly for the ACTIVE period:
+      // Must not match or touch historical closed period expenses (e.g. September 2026)!
       const idx = updated.findIndex(
         (e) =>
-          e.fund_source === 'Kas Operasional' &&
-          (e.category?.toLowerCase().includes(def.key) ||
-            def.category.toLowerCase().includes(e.category?.toLowerCase() || '') ||
-            e.description?.toLowerCase().includes(def.key))
+          e.id === def.id ||
+          (e.fund_source === 'Kas Operasional' &&
+            (e.date || '').startsWith(activePeriodKey) &&
+            (e.category?.toLowerCase().includes(def.key) ||
+              def.category.toLowerCase().includes(e.category?.toLowerCase() || '')))
       );
 
       if (idx >= 0) {
-        // Update existing routine expense amount to match current settings/subscribers
+        // Update existing active period expense
         updated[idx] = {
           ...updated[idx],
           amount: def.amount,
@@ -390,10 +399,10 @@ export default function Home() {
         };
         updatedCount++;
       } else {
-        // Create new routine expense
+        // Create new active period expense
         const newExp: ExpenseTransaction = {
-          id: `exp-${def.key}-${Date.now()}`,
-          date: today,
+          id: def.id,
+          date: periodDate,
           category: def.category,
           amount: def.amount,
           description: def.description,
@@ -407,7 +416,7 @@ export default function Home() {
 
     setExpenses(updated);
     DataService.saveExpenses(updated);
-    alert(`⚡ Sukses Sinkronisasi Beban Rutin ke Buku Kas!\n${createdCount} transaksi baru ditambahkan, ${updatedCount} transaksi diperbarui.\nKini OPEX Dashboard dan Buku Kas 100% klop tanpa selisih.`);
+    alert(`⚡ Sukses Sinkronisasi Beban Rutin Periode ${activePeriodMonth}!\n${createdCount} transaksi baru dicatat, ${updatedCount} transaksi diperbarui.\nArsip periode lalu tetap aman & terlindungi dari duplikasi.`);
   };
 
   // Capex Handlers
@@ -635,6 +644,9 @@ export default function Home() {
             cumulativeReserveFund={fin.cumulativeReserveFund}
             reserveFundSpent={fin.reserveFundSpent}
             totalReserveAllocated={fin.totalReserveAllocated}
+            activePeriodKey={fin.activePeriodKey}
+            activePeriodMonth={fin.activePeriodMonth}
+            closings={closings}
             onAddExpense={handleAddExpense}
             onUpdateExpense={handleUpdateExpense}
             onDeleteExpense={handleDeleteExpense}

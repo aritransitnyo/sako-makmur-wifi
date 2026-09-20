@@ -443,107 +443,110 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Parameter Settings Modal */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md my-auto flex flex-col max-h-[90vh] shadow-2xl overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-cyan-400" />
                 Edit Parameter Biaya Operasional (OPEX)
               </h3>
               <button
                 onClick={() => setShowSettingsModal(false)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveSettings} className="space-y-3 text-xs">
-              <div className="space-y-1">
-                <label className="text-slate-400 font-medium">Biaya Starlink Bulanan (Rp)</label>
-                <input
-                  type="number"
-                  value={starlinkCost}
-                  onChange={(e) => setStarlinkCost(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
-                  required
-                />
+            <form onSubmit={handleSaveSettings} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 text-xs">
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-medium">Biaya Starlink Bulanan (Rp)</label>
+                  <input
+                    type="number"
+                    value={starlinkCost}
+                    onChange={(e) => setStarlinkCost(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-medium">Biaya Listrik Node Bulanan (Rp)</label>
+                  <input
+                    type="number"
+                    value={nodePowerCost}
+                    onChange={(e) => setNodePowerCost(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-medium">Gaji Operator &amp; Maintenance (Rp)</label>
+                  <input
+                    type="number"
+                    value={operatorSalary}
+                    onChange={(e) => setOperatorSalary(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Default: Rp 500.000 / bulan (Tahap awal penyesuaian pelanggan)</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-medium">Jasa Tagih per Pelanggan (Rp)</label>
+                  <input
+                    type="number"
+                    value={collectorFee}
+                    onChange={(e) => setCollectorFee(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Default: Rp 5.000 per user yang lunas bayar</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-medium">Beban Komisi Marketing Rutin (Rp)</label>
+                  <input
+                    type="number"
+                    value={marketingFee}
+                    onChange={(e) => setMarketingFee(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Default: Rp 50.000 / bulan (Tahap awal)</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-slate-400 font-medium">Dana Cadangan Operasional (%)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={reservePct}
+                    onChange={(e) => setReservePct(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Default: 10% dari omzet kas masuk</p>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-slate-400 font-medium">Biaya Listrik Node Bulanan (Rp)</label>
-                <input
-                  type="number"
-                  value={nodePowerCost}
-                  onChange={(e) => setNodePowerCost(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-400 font-medium">Gaji Operator &amp; Maintenance (Rp)</label>
-                <input
-                  type="number"
-                  value={operatorSalary}
-                  onChange={(e) => setOperatorSalary(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
-                  required
-                />
-                <p className="text-[10px] text-slate-500">Default: Rp 500.000 / bulan (Tahap awal penyesuaian pelanggan)</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-400 font-medium">Jasa Tagih per Pelanggan (Rp)</label>
-                <input
-                  type="number"
-                  value={collectorFee}
-                  onChange={(e) => setCollectorFee(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
-                  required
-                />
-                <p className="text-[10px] text-slate-500">Default: Rp 5.000 per user yang lunas bayar</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-400 font-medium">Beban Komisi Marketing Rutin (Rp)</label>
-                <input
-                  type="number"
-                  value={marketingFee}
-                  onChange={(e) => setMarketingFee(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
-                  required
-                />
-                <p className="text-[10px] text-slate-500">Default: Rp 50.000 / bulan (Tahap awal)</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-400 font-medium">Dana Cadangan Operasional (%)</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={reservePct}
-                  onChange={(e) => setReservePct(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
-                  required
-                />
-                <p className="text-[10px] text-slate-500">Default: 10% dari omzet kas masuk</p>
-              </div>
-
-              <div className="pt-2 flex gap-2">
+              {/* Action Buttons Sticky / Pinned Footer */}
+              <div className="p-4 sm:p-5 pt-3 border-t border-slate-800 bg-slate-900/95 backdrop-blur shrink-0 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowSettingsModal(false)}
-                  className="w-1/2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-colors"
+                  className="w-1/2 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-xs"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center justify-center gap-1.5 transition-colors shadow-lg shadow-cyan-500/20"
+                  className="w-1/2 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center justify-center gap-1.5 transition-all text-xs shadow-lg shadow-cyan-500/20"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  Simpan
+                  <span>Simpan Parameter</span>
                 </button>
               </div>
             </form>

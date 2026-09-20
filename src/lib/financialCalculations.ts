@@ -23,6 +23,9 @@ export interface FinancialSummary {
   otherOpexCost: number; // Pengeluaran operasional riil lainnya dari Buku Kas (bensin, patroli, sparepart rutin)
   kasOpexTotal: number; // Total kas operasional riil dari Buku Kas
   isSyncedWithKas: boolean; // Flag sinkronisasi Buku Kas vs Dashboard
+  activePeriodKey: string; // e.g. "2026-10"
+  activePeriodMonth: string; // e.g. "Oktober 2026"
+  isCurrentPeriodClosed: boolean;
   reserveFundPct: number;
   reserveFundAmount: number; // Alokasi bulan berjalan (10%)
   cumulativeReserveFund: number; // Total saldo tabungan cadangan terkini (akumulasi)
@@ -55,6 +58,40 @@ export interface FinancialSummary {
   };
 }
 
+export function getActivePeriodInfo(closings: MonthlyClosing[] = []) {
+  const sorted = [...closings].sort((a, b) => (b.period_key || '').localeCompare(a.period_key || ''));
+  const latestClosing = sorted[0] || null;
+
+  const now = new Date();
+  const currentCalKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  let activePeriodKey = currentCalKey;
+  let activePeriodMonth = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(now);
+
+  if (latestClosing) {
+    // If latest closing is current month or greater (e.g. September 2026 was closed on Sept 20),
+    // next active operational period rolls over to the next month (Oktober 2026)!
+    if (latestClosing.period_key >= currentCalKey) {
+      const [yearStr, monthStr] = latestClosing.period_key.split('-');
+      let nextYear = parseInt(yearStr, 10);
+      let nextMonth = parseInt(monthStr, 10) + 1;
+      if (nextMonth > 12) {
+        nextMonth = 1;
+        nextYear += 1;
+      }
+      activePeriodKey = `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
+      const nextDate = new Date(nextYear, nextMonth - 1, 1);
+      activePeriodMonth = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(nextDate);
+    }
+  }
+
+  return {
+    activePeriodKey,
+    activePeriodMonth,
+    latestClosing,
+  };
+}
+
 export function calculateFinancials(
   subscribers: Subscriber[] = [],
   settings: Partial<BusinessSettings> = {},
@@ -63,6 +100,8 @@ export function calculateFinancials(
   expenses: ExpenseTransaction[] = [],
   closings: MonthlyClosing[] = []
 ): FinancialSummary {
+  const { activePeriodKey, activePeriodMonth, latestClosing } = getActivePeriodInfo(closings);
+
   // Safe defaults from business settings / agreements
   const defaultStarlink = Number(settings.starlink_cost ?? 850000);
   const defaultNodePower = Number(settings.node_power_cost ?? 300000);
@@ -114,11 +153,25 @@ export function calculateFinancials(
   // 3. Current net cumulative reserve fund balance in savings account
   const cumulativeReserveFund = Math.max(0, totalReserveAllocated - reserveFundSpent);
 
-  // 4. Synchronize with Buku Kas (Kas Operasional)
+  // 4. Synchronize with Buku Kas (Kas Operasional) for the ACTIVE period:
   // Single Source of Truth: Operational expenditures recorded in Buku Kas
-  const opexExpenses = expenses.filter(
-    (e) => e.type !== 'income' && (!e.fund_source || e.fund_source === 'Kas Operasional')
-  );
+  // Historical expenses from closed periods (e.g. September 2026) are ARCHIVED
+  // and MUST NOT double count in the active upcoming period!
+  const opexExpenses = expenses.filter((e) => {
+    if (e.type === 'income') return false;
+    if (e.fund_source && e.fund_source !== 'Kas Operasional') return false;
+
+    if (latestClosing) {
+      const expKey = (e.date || '').slice(0, 7);
+      if (expKey && expKey <= latestClosing.period_key) {
+        return false;
+      }
+      if (e.created_at && latestClosing.closed_at && e.created_at <= latestClosing.closed_at) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   const hasKasRecords = opexExpenses.length > 0;
 
@@ -276,6 +329,9 @@ export function calculateFinancials(
     otherOpexCost,
     kasOpexTotal,
     isSyncedWithKas: hasKasRecords,
+    activePeriodKey,
+    activePeriodMonth,
+    isCurrentPeriodClosed: closings.some((c) => c.period_key === activePeriodKey),
     reserveFundPct,
     reserveFundAmount,
     cumulativeReserveFund,

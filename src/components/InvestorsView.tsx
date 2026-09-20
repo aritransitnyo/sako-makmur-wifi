@@ -678,169 +678,172 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
 
       {/* Modal Tambah / Edit Investor */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md my-auto flex flex-col max-h-[90vh] shadow-2xl overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <PieChart className="w-4 h-4 text-emerald-400" />
                 {editingInvestor ? 'Edit Data Investor' : 'Tambah Investor Baru'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Tutup
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Nama Investor</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Haji Rahmat"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Peran / Status</label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="Investor">Investor Pasif</option>
-                  <option value="Managing Owner">Managing Owner (Pengelola)</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 text-xs">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Modal Disetor (Rp)</label>
+                  <label className="block text-slate-400 mb-1 font-medium">Nama Investor</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="text"
                     required
-                    placeholder="0"
-                    value={capitalInvested || ''}
-                    onChange={(e) => setCapitalInvested(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                    placeholder="Contoh: Haji Rahmat"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Porsi Saham (%)</label>
-                  <input
-                    type="number"
-                    min="0.1"
-                    max="100"
-                    step="0.1"
-                    required
-                    placeholder="20"
-                    value={sharePercentage || ''}
-                    onChange={(e) => setSharePercentage(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
 
-              {/* Kontrak Investasi Inputs */}
-              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Tgl Mulai Kontrak</label>
-                  <input
-                    type="date"
-                    required
-                    value={joinDate}
-                    onChange={(e) => setJoinDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-medium focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Durasi Kontrak (Bulan)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="120"
-                    required
-                    value={contractMonths}
-                    onChange={(e) => setContractMonths(parseInt(e.target.value) || 12)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Informasi Rekening Bank untuk Dividen */}
-              <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
-                <div className="flex items-center gap-1.5 text-slate-200 font-bold text-xs">
-                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Rekening Pencairan Dividen Bulanan</span>
+                  <label className="block text-slate-400 mb-1 font-medium">Peran / Status</label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Investor">Investor Pasif</option>
+                    <option value="Managing Owner">Managing Owner (Pengelola)</option>
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Nama Bank / E-Wallet</label>
+                    <label className="block text-slate-400 mb-1 font-medium">Modal Disetor (Rp)</label>
                     <input
-                      type="text"
-                      list="bank-list-suggestions"
-                      placeholder="Contoh: BCA / BRI"
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                      type="number"
+                      min="0"
+                      required
+                      placeholder="0"
+                      value={capitalInvested || ''}
+                      onChange={(e) => setCapitalInvested(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
                     />
-                    <datalist id="bank-list-suggestions">
-                      <option value="BCA" />
-                      <option value="BRI" />
-                      <option value="Bank Mandiri" />
-                      <option value="BNI" />
-                      <option value="BSI (Bank Syariah Indonesia)" />
-                      <option value="Bank Sumsel Babel" />
-                      <option value="Bank Jago" />
-                      <option value="SeaBank" />
-                      <option value="DANA" />
-                      <option value="GoPay" />
-                      <option value="OVO" />
-                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Porsi Saham (%)</label>
+                    <input
+                      type="number"
+                      min="0.1"
+                      max="100"
+                      step="0.1"
+                      required
+                      placeholder="20"
+                      value={sharePercentage || ''}
+                      onChange={(e) => setSharePercentage(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Kontrak Investasi Inputs */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Tgl Mulai Kontrak</label>
+                    <input
+                      type="date"
+                      required
+                      value={joinDate}
+                      onChange={(e) => setJoinDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-medium focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Durasi Kontrak (Bulan)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="120"
+                      required
+                      value={contractMonths}
+                      onChange={(e) => setContractMonths(parseInt(e.target.value) || 12)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Informasi Rekening Bank untuk Dividen */}
+                <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+                  <div className="flex items-center gap-1.5 text-slate-200 font-bold text-xs">
+                    <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Rekening Pencairan Dividen Bulanan</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-slate-400 mb-1 font-medium">Nama Bank / E-Wallet</label>
+                      <input
+                        type="text"
+                        list="bank-list-suggestions"
+                        placeholder="Contoh: BCA / BRI"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                      />
+                      <datalist id="bank-list-suggestions">
+                        <option value="BCA" />
+                        <option value="BRI" />
+                        <option value="Bank Mandiri" />
+                        <option value="BNI" />
+                        <option value="BSI (Bank Syariah Indonesia)" />
+                        <option value="Bank Sumsel Babel" />
+                        <option value="Bank Jago" />
+                        <option value="SeaBank" />
+                        <option value="DANA" />
+                        <option value="GoPay" />
+                        <option value="OVO" />
+                      </datalist>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 mb-1 font-medium">Nomor Rekening</label>
+                      <input
+                        type="text"
+                        placeholder="Contoh: 1234567890"
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-slate-400 mb-1 font-medium">Nomor Rekening</label>
+                    <label className="block text-slate-400 mb-1 font-medium">Atas Nama (Pemilik Rekening)</label>
                     <input
                       type="text"
-                      placeholder="Contoh: 1234567890"
-                      value={accountNumber}
-                      onChange={(e) => setAccountNumber(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                      placeholder={name ? `Contoh: ${name}` : 'Contoh: Ahmad Fauzi'}
+                      value={accountHolder}
+                      onChange={(e) => setAccountHolder(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Atas Nama (Pemilik Rekening)</label>
-                  <input
-                    type="text"
-                    placeholder={name ? `Contoh: ${name}` : 'Contoh: Ahmad Fauzi'}
-                    value={accountHolder}
-                    onChange={(e) => setAccountHolder(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
               </div>
 
-              <div className="pt-2 flex gap-2">
+              {/* Action Buttons Sticky / Pinned Footer */}
+              <div className="p-4 sm:p-5 pt-3 border-t border-slate-800 bg-slate-900/95 backdrop-blur shrink-0 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-1/2 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                  className="w-1/2 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-xs"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black"
+                  className="w-1/2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black transition-all text-xs shadow-lg shadow-emerald-500/20"
                 >
                   {editingInvestor ? 'Simpan Perubahan' : 'Simpan Investor'}
                 </button>

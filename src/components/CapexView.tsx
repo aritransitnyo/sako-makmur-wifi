@@ -207,122 +207,125 @@ export const CapexView: React.FC<CapexViewProps> = ({
 
       {/* Modal Tambah / Edit CAPEX */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md my-auto flex flex-col max-h-[90vh] shadow-2xl overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-violet-400" />
                 {editingItem ? 'Edit Aset Belanja Modal' : 'Catat Belanja Modal (CAPEX)'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Tutup
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Nama Barang / Pengadaan</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Kabel FO 1000m / Starlink Mount"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Kategori</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
-                >
-                  <option value="Starlink & Backhaul">Starlink &amp; Backhaul</option>
-                  <option value="MikroTik & Core">MikroTik &amp; Core Network</option>
-                  <option value="Kabel & Distribusi">Kabel FO &amp; Distribusi</option>
-                  <option value="Power & Backup">Power, Listrik &amp; UPS</option>
-                  <option value="Jasa & Instalasi">Jasa &amp; Instalasi Jaringan / Pasang</option>
-                  <option value="Lainnya">Lainnya / Tiang / Aksesoris</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 text-xs">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Jumlah (Qty)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Satuan</label>
+                  <label className="block text-slate-400 mb-1 font-medium">Nama Barang / Pengadaan</label>
                   <input
                     type="text"
                     required
-                    placeholder="unit, roll, pcs"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
+                    placeholder="Contoh: Kabel FO 1000m / Starlink Mount"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Kategori</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="Starlink & Backhaul">Starlink &amp; Backhaul</option>
+                    <option value="MikroTik & Core">MikroTik &amp; Core Network</option>
+                    <option value="Kabel & Distribusi">Kabel FO &amp; Distribusi</option>
+                    <option value="Power & Backup">Power, Listrik &amp; UPS</option>
+                    <option value="Jasa & Instalasi">Jasa &amp; Instalasi Jaringan / Pasang</option>
+                    <option value="Lainnya">Lainnya / Tiang / Aksesoris</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Jumlah (Qty)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Satuan</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="unit, roll, pcs"
+                      value={unit}
+                      onChange={(e) => setUnit(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-violet-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Harga Satuan (Rp)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    placeholder="0"
+                    value={unitPrice || ''}
+                    onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
+                {/* URL Bukti / Nota */}
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    URL Bukti Nota / Foto (Opsional)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://... link bukti pembelian"
+                    value={receiptUrl}
+                    onChange={(e) => setReceiptUrl(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-violet-500 text-xs"
+                  />
+                </div>
+
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-slate-300">
+                  <span className="text-slate-400">Total Biaya: </span>
+                  <span className="font-bold text-violet-400">
+                    {formatRupiah(quantity * unitPrice)}
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Harga Satuan (Rp)</label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  placeholder="0"
-                  value={unitPrice || ''}
-                  onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-violet-500"
-                />
-              </div>
-
-              {/* URL Bukti / Nota */}
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">
-                  URL Bukti Nota / Foto (Opsional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://... link bukti pembelian"
-                  value={receiptUrl}
-                  onChange={(e) => setReceiptUrl(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-violet-500 text-xs"
-                />
-              </div>
-
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-slate-300">
-                <span className="text-slate-400">Total Biaya: </span>
-                <span className="font-bold text-violet-400">
-                  {formatRupiah(quantity * unitPrice)}
-                </span>
-              </div>
-
-              <div className="pt-2 flex gap-2">
+              {/* Action Buttons Sticky / Pinned Footer */}
+              <div className="p-4 sm:p-5 pt-3 border-t border-slate-800 bg-slate-900/95 backdrop-blur shrink-0 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-1/2 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                  className="w-1/2 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-xs"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black"
+                  className="w-1/2 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-black transition-all text-xs shadow-lg shadow-violet-600/20"
                 >
-                  {editingItem ? 'Simpan Perubahan' : 'Simpan Item'}
+                  {editingItem ? 'Simpan Perubahan' : 'Simpan Barang CAPEX'}
                 </button>
               </div>
             </form>

@@ -72,26 +72,23 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
     setTimeout(() => setCopiedAccountInvId(null), 2000);
   };
 
-  // Form states for creating a new closing
-  const defaultMonthName = new Intl.DateTimeFormat('id-ID', {
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date());
-
-  const [periodMonth, setPeriodMonth] = useState(defaultMonthName);
-  const [notes, setNotes] = useState('');
-  const [resetPayments, setResetPayments] = useState(true);
-
-  if (!isOpen) return null;
-
   // Unified live numbers for current period closing
-  const fin = calculateFinancials(subscribers, settings, investors);
+  const fin = calculateFinancials(subscribers, settings, investors, [], expenses, closings);
   const activeSubs = fin.activeSubs;
   const paidSubs = fin.paidSubs;
   const realCashIn = fin.totalOmzet;
   const realOpex = fin.totalOpex;
   const reserveFund = fin.reserveFundAmount;
   const netProfit = fin.netProfit;
+
+  // Form states for creating a new closing
+  const [periodMonth, setPeriodMonth] = useState(fin.activePeriodMonth || 'Oktober 2026');
+  const [notes, setNotes] = useState('');
+  const [resetPayments, setResetPayments] = useState(true);
+
+  if (!isOpen) return null;
+
+  const isAlreadyClosed = closings.some((c) => c.period_key === fin.activePeriodKey);
 
   const currentDividends: InvestorDividendSnapshot[] = fin.investorDividends.map((inv) => ({
     investor_id: inv.id,
@@ -107,13 +104,18 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
 
   const handleCreateClosing = (e: React.FormEvent) => {
     e.preventDefault();
-    const periodKey = new Date().toISOString().slice(0, 7); // e.g. 2026-09
+    if (isAlreadyClosed) {
+      alert(`⚠️ Periode ${periodMonth} sudah pernah ditutup buku sebelumnya. Tutup buku tidak dapat diduplikasi.`);
+      return;
+    }
+
+    const periodKey = fin.activePeriodKey;
     const newClosing: MonthlyClosing = {
       id: `close-${Date.now()}`,
       period_month: periodMonth.trim(),
       period_key: periodKey,
       closed_at: new Date().toISOString(),
-      closed_by: `${investors.find((i) => i.role === 'Managing Owner')?.name || 'Pengelola'}`,
+      closed_by: `${investors.find((i) => i.role === 'Managing Owner')?.name || 'Tri Wahyono'}`,
       active_subscribers_count: fin.activeCount,
       paid_subscribers_count: fin.paidCount,
       gross_revenue: realCashIn,
@@ -507,13 +509,29 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
               </span>
             </label>
 
+            {isAlreadyClosed && (
+              <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" /> Periode {fin.activePeriodMonth} Sudah Pernah Ditutup
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Tutup buku untuk periode ini sudah selesai. Riwayat dan bukti transfer dividen tersimpan aman di tab &ldquo;Riwayat Arsip &amp; Dividen&rdquo;.
+                </p>
+              </div>
+            )}
+
             {/* Submit */}
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-98 transition-all"
+              disabled={isAlreadyClosed}
+              className={`w-full py-3 rounded-xl font-black flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all ${
+                isAlreadyClosed
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                  : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-cyan-500/25'
+              }`}
             >
               <Lock className="w-4 h-4" />
-              Kunci &amp; Simpan Tutup Buku Resmi
+              {isAlreadyClosed ? 'Periode Sudah Ditutup (Cek Riwayat)' : 'Kunci & Simpan Tutup Buku Resmi'}
             </button>
           </form>
         )}

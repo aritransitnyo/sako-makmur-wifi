@@ -17,8 +17,9 @@ import {
   Wrench,
   RefreshCw,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
-import { ExpenseTransaction } from '../types';
+import { ExpenseTransaction, MonthlyClosing } from '../types';
 import { formatRupiah } from './MetricCard';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -29,6 +30,9 @@ interface ExpensesViewProps {
   cumulativeReserveFund?: number;
   reserveFundSpent?: number;
   totalReserveAllocated?: number;
+  activePeriodKey?: string;
+  activePeriodMonth?: string;
+  closings?: MonthlyClosing[];
   onAddExpense: (item: Omit<ExpenseTransaction, 'id' | 'created_at'>) => void;
   onUpdateExpense: (item: ExpenseTransaction) => void;
   onDeleteExpense: (id: string) => void;
@@ -42,6 +46,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   cumulativeReserveFund = 0,
   reserveFundSpent = 0,
   totalReserveAllocated = 0,
+  activePeriodKey,
+  activePeriodMonth = 'Oktober 2026',
+  closings = [],
   onAddExpense,
   onUpdateExpense,
   onDeleteExpense,
@@ -53,6 +60,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<
     'all' | 'Kas Operasional' | 'Kas Dana Cadangan (Maintenance)' | 'Kas Sisa Modal'
   >('all');
+  const [periodFilter, setPeriodFilter] = useState<'active' | 'archived' | 'all'>('active');
 
   // Form State
   const [category, setCategory] = useState<string>('Listrik & Token PLN');
@@ -64,17 +72,37 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   >('Kas Operasional');
   const [receiptUrl, setReceiptUrl] = useState('');
 
+  // Latest closing for period segregation
+  const latestClosing = closings && closings.length > 0
+    ? [...closings].sort((a, b) => (b.period_key || '').localeCompare(a.period_key || ''))[0]
+    : null;
+
+  const isArchivedExpense = (exp: ExpenseTransaction) => {
+    if (!latestClosing) return false;
+    const expKey = (exp.date || '').slice(0, 7);
+    if (expKey && expKey <= latestClosing.period_key) return true;
+    if (exp.created_at && latestClosing.closed_at && exp.created_at <= latestClosing.closed_at) return true;
+    return false;
+  };
+
   // Calculations
   const expenseItems = expenses.filter((e) => e.type !== 'income');
   const opexExpenses = expenseItems.filter(
     (e) => !e.fund_source || e.fund_source === 'Kas Operasional'
   );
+  // Current active period operational expenses
+  const activeOpexExpenses = opexExpenses.filter((e) => !isArchivedExpense(e));
+  const archivedExpenses = expenses.filter((e) => isArchivedExpense(e));
+  const activeExpenses = expenses.filter((e) => !isArchivedExpense(e));
+
   const totalExpense = expenseItems.reduce((sum, item) => sum + item.amount, 0);
-  const totalOpexBerjalan = opexExpenses.reduce((sum, item) => sum + item.amount, 0);
+  const totalOpexBerjalan = activeOpexExpenses.reduce((sum, item) => sum + item.amount, 0);
   const netKasOperasional = realCashIn - totalOpexBerjalan;
 
   // Filtered list
   const displayedExpenses = expenses.filter((e) => {
+    if (periodFilter === 'active' && isArchivedExpense(e)) return false;
+    if (periodFilter === 'archived' && !isArchivedExpense(e)) return false;
     if (selectedFilter === 'all') return true;
     if (selectedFilter === 'Kas Operasional') return !e.fund_source || e.fund_source === 'Kas Operasional';
     return e.fund_source === selectedFilter;
@@ -241,6 +269,44 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         </div>
       </div>
 
+      {/* Period Segregation Selector */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 rounded-2xl border border-slate-800 text-xs">
+        <button
+          onClick={() => setPeriodFilter('active')}
+          className={`flex-1 py-2 px-3 rounded-xl font-bold text-center transition-all flex items-center justify-center gap-1.5 ${
+            periodFilter === 'active'
+              ? 'bg-cyan-500 text-slate-950 shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <span>⚡ Periode Berjalan</span>
+          <span className="font-mono text-[11px]">({activePeriodMonth})</span>
+        </button>
+        {archivedExpenses.length > 0 && (
+          <button
+            onClick={() => setPeriodFilter('archived')}
+            className={`py-2 px-3 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
+              periodFilter === 'archived'
+                ? 'bg-slate-700 text-slate-100 shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Arsip Ditutup ({archivedExpenses.length})</span>
+          </button>
+        )}
+        <button
+          onClick={() => setPeriodFilter('all')}
+          className={`py-2 px-3 rounded-xl font-bold transition-all ${
+            periodFilter === 'all'
+              ? 'bg-slate-700 text-slate-100 shadow-md'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Semua ({expenses.length})
+        </button>
+      </div>
+
       {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
         <button
@@ -319,6 +385,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                   >
                     {exp.category}
                   </span>
+                  {isArchivedExpense(exp) ? (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-800 text-slate-400 border border-slate-700/60">
+                      <Lock className="w-2.5 h-2.5" /> Ditutup ({latestClosing?.period_month || 'Lalu'})
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
+                      ⚡ Periode Aktif
+                    </span>
+                  )}
                   {exp.type === 'income' && (
                     <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-600/50">
                       Pemasukan
@@ -399,119 +474,122 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
       {/* Modal Tambah / Edit Biaya */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md my-auto flex flex-col max-h-[90vh] shadow-2xl overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <Wallet className="w-4 h-4 text-amber-400" />
                 {editingExpense ? 'Edit Pengeluaran Riil' : 'Catat Pengeluaran Riil'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Tutup
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Tanggal</label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
-                />
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 text-xs">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Tanggal</label>
+                  <input
+                    type="date"
+                    required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Kategori Biaya</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="Langganan Starlink">Langganan Starlink</option>
+                    <option value="Listrik & Token PLN">Listrik &amp; Token PLN</option>
+                    <option value="Gaji Operator">Gaji Operator &amp; Helpdesk (Rp 500rb)</option>
+                    <option value="Komisi Marketing">Komisi Marketing (Rp 50rb)</option>
+                    <option value="Jasa Tagih Lapangan">Jasa Tagih Lapangan (Rp 5rb/user)</option>
+                    <option value="Bensin & Transport">Bensin &amp; Transport Patroli</option>
+                    <option value="Sparepart & Konektor FO">Sparepart &amp; Konektor FO Siaga</option>
+                    <option value="Perbaikan Darurat / Force Majeure">Perbaikan Darurat / Force Majeure</option>
+                    <option value="Ganti Router ONT Pelanggan">Ganti Router ONT Pelanggan</option>
+                    <option value="Lain-lain">Lain-lain / Operasional</option>
+                  </select>
+                </div>
+
+                {/* Sumber Dana Selector */}
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Sumber Dana</label>
+                  <select
+                    value={fundSource}
+                    onChange={(e) => setFundSource(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="Kas Operasional">Kas Operasional (Iuran Pelanggan)</option>
+                    <option value="Kas Sisa Modal">Kas Sisa Modal Investor (CAPEX)</option>
+                    <option value="Kas Dana Cadangan (Maintenance)">Kas Dana Cadangan (Tabungan Jaringan / Maintenance)</option>
+                    <option value="Dana Talangan Pengelola">Dana Talangan Pengelola</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Keterangan Pengeluaran</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Beli token PLN 200rb untuk node 2"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Nominal Biaya (Rp)</label>
+                  <input
+                    type="number"
+                    min="1000"
+                    step="1000"
+                    required
+                    placeholder="0"
+                    value={amount || ''}
+                    onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold text-sm focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {/* URL Bukti / Nota */}
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">
+                    URL Link Bukti Nota / Foto (Opsional)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://drive.google.com/... atau link foto"
+                    value={receiptUrl}
+                    onChange={(e) => setReceiptUrl(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500 text-xs"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Kategori Biaya</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
-                >
-                  <option value="Langganan Starlink">Langganan Starlink</option>
-                  <option value="Listrik & Token PLN">Listrik &amp; Token PLN</option>
-                  <option value="Gaji Operator">Gaji Operator &amp; Helpdesk (Rp 500rb)</option>
-                  <option value="Komisi Marketing">Komisi Marketing (Rp 50rb)</option>
-                  <option value="Jasa Tagih Lapangan">Jasa Tagih Lapangan (Rp 5rb/user)</option>
-                  <option value="Bensin & Transport">Bensin &amp; Transport Patroli</option>
-                  <option value="Sparepart & Konektor FO">Sparepart &amp; Konektor FO Siaga</option>
-                  <option value="Perbaikan Darurat / Force Majeure">Perbaikan Darurat / Force Majeure</option>
-                  <option value="Ganti Router ONT Pelanggan">Ganti Router ONT Pelanggan</option>
-                  <option value="Lain-lain">Lain-lain / Operasional</option>
-                </select>
-              </div>
-
-              {/* Sumber Dana Selector */}
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Sumber Dana</label>
-                <select
-                  value={fundSource}
-                  onChange={(e) => setFundSource(e.target.value as any)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-amber-500"
-                >
-                  <option value="Kas Operasional">Kas Operasional (Iuran Pelanggan)</option>
-                  <option value="Kas Sisa Modal">Kas Sisa Modal Investor (CAPEX)</option>
-                  <option value="Kas Dana Cadangan (Maintenance)">Kas Dana Cadangan (Tabungan Jaringan / Maintenance)</option>
-                  <option value="Dana Talangan Pengelola">Dana Talangan Pengelola</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Keterangan Pengeluaran</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Beli token PLN 200rb untuk node 2"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Nominal Biaya (Rp)</label>
-                <input
-                  type="number"
-                  min="1000"
-                  step="1000"
-                  required
-                  placeholder="0"
-                  value={amount || ''}
-                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold text-sm focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              {/* URL Bukti / Nota */}
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">
-                  URL Link Bukti Nota / Foto (Opsional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://drive.google.com/... atau link foto"
-                  value={receiptUrl}
-                  onChange={(e) => setReceiptUrl(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-amber-500 text-xs"
-                />
-              </div>
-
-              <div className="pt-2 flex gap-2">
+              {/* Action Buttons Sticky / Pinned Footer */}
+              <div className="p-4 sm:p-5 pt-3 border-t border-slate-800 bg-slate-900/95 backdrop-blur shrink-0 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-1/2 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                  className="w-1/2 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-xs"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black"
+                  className="w-1/2 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black transition-all text-xs shadow-lg shadow-amber-500/20"
                 >
                   {editingExpense ? 'Simpan Perubahan' : 'Simpan Biaya'}
                 </button>

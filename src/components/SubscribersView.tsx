@@ -534,149 +534,152 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
 
       {/* Modal Tambah / Edit Subscriber */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 w-full max-w-md space-y-4 page-transition shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md my-auto flex flex-col max-h-[90vh] shadow-2xl overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                 <Users className="w-4 h-4 text-cyan-400" />
                 {editingSub ? 'Edit Data Pelanggan PPPoE' : 'Tambah Pelanggan PPPoE Baru'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Tutup
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Nama Pelanggan</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Pak RT Slamet"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 text-xs">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Username PPPoE</label>
+                  <label className="block text-slate-400 mb-1 font-medium">Nama Pelanggan</label>
                   <input
                     type="text"
                     required
-                    placeholder="sako_rt01_slamet"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-cyan-300 font-mono focus:outline-none focus:border-cyan-500"
+                    placeholder="Contoh: Pak RT Slamet"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Username PPPoE</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="sako_rt01_slamet"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-cyan-300 font-mono focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Password PPPoE</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="123"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Package Select */}
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Password PPPoE</label>
+                  <label className="block text-slate-400 mb-1 font-medium">Paket PPPoE</label>
+                  <select
+                    value={selectedPackageId}
+                    onChange={(e) => handlePackageChange(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-cyan-500"
+                  >
+                    {packages.map((pkg) => (
+                      <option key={pkg.id} value={pkg.id}>
+                        {pkg.package_name} ({pkg.speed_limit}) - {formatRupiah(pkg.price_monthly)}/bln
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Tarif Bulanan (Rp)</label>
+                    <input
+                      type="number"
+                      min="50000"
+                      step="10000"
+                      required
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 200000)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Jatuh Tempo (Tgl)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      required
+                      value={dueDate}
+                      onChange={(e) => setDueDate(parseInt(e.target.value) || 10)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Alamat Pemasangan</label>
                   <input
                     type="text"
-                    required
-                    placeholder="123"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
+                    placeholder="Contoh: RT 02 / RW 01 Dekat Masjid"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
-              </div>
 
-              {/* Package Select */}
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Paket PPPoE</label>
-                <select
-                  value={selectedPackageId}
-                  onChange={(e) => handlePackageChange(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-semibold focus:outline-none focus:border-cyan-500"
-                >
-                  {packages.map((pkg) => (
-                    <option key={pkg.id} value={pkg.id}>
-                      {pkg.package_name} ({pkg.speed_limit}) - {formatRupiah(pkg.price_monthly)}/bln
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Tarif Bulanan (Rp)</label>
+                  <label className="block text-slate-400 mb-1 font-medium">Nomor WhatsApp Pelanggan</label>
                   <input
-                    type="number"
-                    min="50000"
-                    step="10000"
-                    required
-                    value={customPrice}
-                    onChange={(e) => setCustomPrice(parseFloat(e.target.value) || 200000)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
+                    type="text"
+                    placeholder="08123456789"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-slate-400 mb-1 font-medium">Jatuh Tempo (Tgl)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    required
-                    value={dueDate}
-                    onChange={(e) => setDueDate(parseInt(e.target.value) || 10)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-cyan-500"
-                  />
+
+                {/* MikroTik Auto-Provisioning Notice */}
+                <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-xl flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-cyan-200">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="font-semibold">Otomatis buat &amp; sinkron user di Router MikroTik</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-900/60 text-cyan-300 font-mono font-bold">
+                    RB750Gr3
+                  </span>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Alamat Pemasangan</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: RT 02 / RW 01 Dekat Masjid"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1 font-medium">Nomor WhatsApp Pelanggan</label>
-                <input
-                  type="text"
-                  placeholder="08123456789"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              {/* MikroTik Auto-Provisioning Notice */}
-              <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-xl flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-cyan-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span className="font-semibold">Otomatis buat &amp; sinkron user di Router MikroTik</span>
-                </div>
-                <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-900/60 text-cyan-300 font-mono font-bold">
-                  RB750Gr3
-                </span>
-              </div>
-
-              <div className="pt-2 flex gap-2">
+              {/* Action Buttons Sticky / Pinned Footer */}
+              <div className="p-4 sm:p-5 pt-3 border-t border-slate-800 bg-slate-900/95 backdrop-blur shrink-0 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-1/2 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                  className="w-1/2 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all text-xs"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center justify-center gap-1"
+                  className="w-1/2 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black flex items-center justify-center gap-1 transition-all text-xs shadow-lg shadow-cyan-500/20"
                 >
                   <span>⚡</span>
-                  <span>{editingSub ? 'Simpan & Sinkron Router' : 'Simpan & Buat di Router'}</span>
+                  <span>{editingSub ? 'Simpan & Sinkron' : 'Simpan & Buat Baru'}</span>
                 </button>
               </div>
             </form>
