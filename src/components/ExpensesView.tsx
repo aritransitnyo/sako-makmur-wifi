@@ -108,6 +108,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     return e.fund_source === selectedFilter;
   });
 
+  const displayedExpenseItems = displayedExpenses.filter((e) => e.type !== 'income');
+  const displayedExpenseAmount = displayedExpenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
   const handleOpenAdd = () => {
     setEditingExpense(null);
     setCategory('Listrik & Token PLN');
@@ -244,9 +247,33 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
       {/* Button Catat Biaya Bar */}
       <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
         <div>
-          <p className="text-xs font-bold text-slate-200">Buku Kas Keluar &amp; Biaya</p>
+          <p className="text-xs font-bold text-slate-200">
+            {periodFilter === 'active'
+              ? `Buku Kas Periode ${activePeriodMonth}`
+              : periodFilter === 'archived'
+              ? `Arsip Buku Kas (${latestClosing?.period_month || 'Periode Lalu'})`
+              : 'Semua Riwayat Buku Kas'}
+          </p>
           <p className="text-[11px] text-slate-400">
-            Total {expenses.length} Transaksi: <span className="text-rose-400 font-bold">{formatRupiah(totalExpense)}</span>
+            {periodFilter === 'active' ? (
+              <>
+                <span className="text-slate-300 font-medium">{displayedExpenses.length} Transaksi Bulan Ini</span>
+                {' • '}
+                Beban OPEX: <span className="text-rose-400 font-bold">{formatRupiah(displayedExpenseAmount)}</span>
+              </>
+            ) : periodFilter === 'archived' ? (
+              <>
+                <span className="text-slate-300 font-medium">{displayedExpenses.length} Transaksi Arsip</span>
+                {' • '}
+                Beban Ditutup: <span className="text-rose-400 font-bold">{formatRupiah(displayedExpenseAmount)}</span>
+              </>
+            ) : (
+              <>
+                <span className="text-slate-300 font-medium">Total {expenses.length} Transaksi Kumulatif</span>
+                {' • '}
+                Total Riil: <span className="text-rose-400 font-bold">{formatRupiah(totalExpense)}</span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
