@@ -30,6 +30,9 @@ export const DEFAULT_INVESTORS: Investor[] = [
     share_percentage: 20.0,
     join_date: '2026-09-01',
     contract_months: 12,
+    bank_name: 'BCA',
+    account_number: '',
+    account_holder: 'Tri Wahyono',
     created_at: new Date().toISOString(),
   },
   {
@@ -40,6 +43,9 @@ export const DEFAULT_INVESTORS: Investor[] = [
     share_percentage: 60.0,
     join_date: '2026-09-01',
     contract_months: 12,
+    bank_name: 'BRI',
+    account_number: '',
+    account_holder: 'Ahmad Fauzi',
     created_at: new Date().toISOString(),
   },
   {
@@ -50,6 +56,9 @@ export const DEFAULT_INVESTORS: Investor[] = [
     share_percentage: 20.0,
     join_date: '2026-09-01',
     contract_months: 12,
+    bank_name: 'BRI',
+    account_number: '',
+    account_holder: 'Anwar Khadafi Saimona',
     created_at: new Date().toISOString(),
   },
 ];
@@ -511,17 +520,34 @@ export class DataService {
 
   // Investors
   static async getInvestors(): Promise<{ data: Investor[]; isSupabase: boolean }> {
+    const stored = this.getLocal('investors', DEFAULT_INVESTORS);
     try {
       const { data, error } = await supabase.from('investors').select('*').order('capital_invested', { ascending: false });
       if (!error && data && data.length > 0) {
-        return { data, isSupabase: true };
+        // Merge with local storage in case bank details were saved locally
+        const merged = data.map((inv: any) => {
+          const local = stored.find(
+            (s) => s.id === inv.id || s.name.toLowerCase() === inv.name.toLowerCase()
+          );
+          return {
+            ...inv,
+            join_date: inv.join_date || local?.join_date || '2026-09-01',
+            contract_months: inv.contract_months || local?.contract_months || 12,
+            bank_name: inv.bank_name !== undefined ? inv.bank_name : (local?.bank_name || ''),
+            account_number: inv.account_number !== undefined ? inv.account_number : (local?.account_number || ''),
+            account_holder: inv.account_holder !== undefined ? inv.account_holder : (local?.account_holder || inv.name),
+          };
+        });
+        return { data: merged, isSupabase: true };
       }
     } catch {}
-    const stored = this.getLocal('investors', DEFAULT_INVESTORS);
     const updated = stored.map((inv) => ({
       ...inv,
       join_date: inv.join_date || '2026-09-01',
       contract_months: inv.contract_months || 12,
+      bank_name: inv.bank_name || '',
+      account_number: inv.account_number || '',
+      account_holder: inv.account_holder || inv.name,
     }));
     return { data: updated, isSupabase: false };
   }
@@ -530,7 +556,12 @@ export class DataService {
     this.setLocal('investors', investors);
     try {
       for (const inv of investors) {
-        await supabase.from('investors').upsert(inv);
+        const { error } = await supabase.from('investors').upsert(inv);
+        if (error) {
+          // If schema cache doesn't have bank columns yet, fallback upsert without them
+          const { bank_name, account_number, account_holder, ...safeInv } = inv;
+          await supabase.from('investors').upsert(safeInv);
+        }
       }
     } catch {}
   }
@@ -720,8 +751,20 @@ CREATE TABLE IF NOT EXISTS investors (
     role TEXT DEFAULT 'Investor',
     capital_invested NUMERIC(12,2) NOT NULL DEFAULT 0,
     share_percentage NUMERIC(5,2) NOT NULL DEFAULT 0,
+    join_date DATE DEFAULT '2026-09-01',
+    contract_months INT DEFAULT 12,
+    bank_name TEXT,
+    account_number TEXT,
+    account_holder TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+-- Tambahkan kolom rekening bank & masa kontrak jika tabel sudah ada
+ALTER TABLE investors ADD COLUMN IF NOT EXISTS join_date DATE DEFAULT '2026-09-01';
+ALTER TABLE investors ADD COLUMN IF NOT EXISTS contract_months INT DEFAULT 12;
+ALTER TABLE investors ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE investors ADD COLUMN IF NOT EXISTS account_number TEXT;
+ALTER TABLE investors ADD COLUMN IF NOT EXISTS account_holder TEXT;
 
 CREATE TABLE IF NOT EXISTS capex_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Copy,
   Check,
+  CreditCard,
 } from 'lucide-react';
 import {
   BusinessSettings,
@@ -62,6 +63,14 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
   const [activeTab, setActiveTab] = useState<'history' | 'create'>('history');
   const [expandedId, setExpandedId] = useState<string | null>(closings[0]?.id || null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedAccountInvId, setCopiedAccountInvId] = useState<string | null>(null);
+
+  const handleCopySingleAccount = (invId: string, accNo?: string) => {
+    if (!accNo) return;
+    navigator.clipboard.writeText(accNo);
+    setCopiedAccountInvId(invId);
+    setTimeout(() => setCopiedAccountInvId(null), 2000);
+  };
 
   // Form states for creating a new closing
   const defaultMonthName = new Intl.DateTimeFormat('id-ID', {
@@ -91,6 +100,9 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
     share_percentage: inv.share_percentage,
     dividend_amount: inv.dividendAmount,
     paid_status: 'pending',
+    bank_name: inv.bank_name,
+    account_number: inv.account_number,
+    account_holder: inv.account_holder,
   }));
 
   const handleCreateClosing = (e: React.FormEvent) => {
@@ -131,7 +143,14 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
     report += `💰 *LABA BERSIH DIBAGI:* ${formatRupiah(c.net_profit)}\n\n`;
     report += `🤝 *STATUS PENCAIRAN DIVIDEN:*\n`;
     c.investor_dividends.forEach((inv, i) => {
-      report += `${i + 1}. *${inv.name}* (${inv.share_percentage}%): ${formatRupiah(inv.dividend_amount)} [${inv.paid_status === 'paid' ? 'LUNAS DITRANSFER ✅' : 'PENDING ⏳'}]\n`;
+      const liveInv = investors.find(
+        (item) => item.id === inv.investor_id || item.name.toLowerCase() === inv.name.toLowerCase()
+      );
+      const bName = inv.bank_name || liveInv?.bank_name;
+      const accNo = inv.account_number || liveInv?.account_number;
+      const accHolder = inv.account_holder || liveInv?.account_holder || inv.name;
+      const rekStr = accNo ? ` [${bName || 'Bank'} ${accNo} a.n. ${accHolder}]` : '';
+      report += `${i + 1}. *${inv.name}* (${inv.share_percentage}%): ${formatRupiah(inv.dividend_amount)}${rekStr} [${inv.paid_status === 'paid' ? 'LUNAS DITRANSFER ✅' : 'PENDING ⏳'}]\n`;
     });
     if (c.notes) {
       report += `\n📝 *Catatan:* ${c.notes}\n`;
@@ -267,16 +286,55 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
                         <div className="space-y-1.5">
                           {c.investor_dividends.map((inv) => {
                             const isPaid = inv.paid_status === 'paid';
+                            const liveInv = investors.find(
+                              (i) => i.id === inv.investor_id || i.name.toLowerCase() === inv.name.toLowerCase()
+                            );
+                            const bankName = inv.bank_name || liveInv?.bank_name;
+                            const accountNumber = inv.account_number || liveInv?.account_number;
+                            const accountHolder = inv.account_holder || liveInv?.account_holder || inv.name;
+
                             return (
                               <div
                                 key={inv.investor_id}
-                                className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between text-xs"
+                                className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2"
                               >
                                 <div>
-                                  <p className="font-bold text-slate-200">{inv.name}</p>
-                                  <p className="text-[11px] text-slate-500">
-                                    Porsi {inv.share_percentage}% • {formatRupiah(inv.dividend_amount)}
-                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-slate-200">{inv.name}</p>
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
+                                      {inv.share_percentage}%
+                                    </span>
+                                    <span className="font-black text-xs text-emerald-400">
+                                      {formatRupiah(inv.dividend_amount)}
+                                    </span>
+                                  </div>
+
+                                  {/* Bank Account info with 1-click copy */}
+                                  {accountNumber ? (
+                                    <div className="flex items-center gap-1.5 mt-1 text-[11px] flex-wrap">
+                                      <span className="px-1.5 py-0.2 rounded bg-slate-900 border border-slate-700/60 font-bold text-slate-300 text-[10px]">
+                                        {bankName || 'Bank'}
+                                      </span>
+                                      <span className="font-mono font-bold text-cyan-300">{accountNumber}</span>
+                                      <span className="text-slate-400 text-[10.5px]">a.n. {accountHolder}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopySingleAccount(inv.investor_id, accountNumber)}
+                                        className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-cyan-300 transition-colors flex items-center gap-0.5"
+                                        title="Salin nomor rekening"
+                                      >
+                                        {copiedAccountInvId === inv.investor_id ? (
+                                          <Check className="w-3 h-3 text-emerald-400 stroke-[3]" />
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <p className="text-[10px] text-amber-400/80 italic mt-0.5">
+                                      Rekening belum diisi di profil investor
+                                    </p>
+                                  )}
                                 </div>
 
                                 <button
@@ -287,7 +345,7 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
                                       isPaid ? 'pending' : 'paid'
                                     )
                                   }
-                                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                  className={`px-2.5 py-1.5 rounded-lg text-[10.5px] font-bold border transition-all flex-shrink-0 ${
                                     isPaid
                                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
                                       : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
@@ -406,9 +464,18 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
               {currentDividends.map((inv) => (
                 <div
                   key={inv.investor_id}
-                  className="p-2 rounded-xl bg-slate-950 border border-slate-800/80 flex justify-between items-center text-[11px]"
+                  className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 flex justify-between items-center text-[11px]"
                 >
-                  <span className="font-semibold text-slate-200">{inv.name} ({inv.share_percentage}%)</span>
+                  <div>
+                    <span className="font-semibold text-slate-200">{inv.name} ({inv.share_percentage}%)</span>
+                    {inv.account_number ? (
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Tujuan: <span className="text-slate-300 font-semibold">{inv.bank_name || 'Bank'}</span> <span className="text-cyan-300 font-mono font-bold">{inv.account_number}</span> (a.n. {inv.account_holder || inv.name})
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-amber-400/80 italic mt-0.5">Rekening belum diisi</p>
+                    )}
+                  </div>
                   <span className="font-bold text-emerald-400">{formatRupiah(inv.dividend_amount)}</span>
                 </div>
               ))}

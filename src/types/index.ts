@@ -19,6 +19,9 @@ export interface Investor {
   share_percentage: number;
   join_date?: string; // Tanggal mulai kontrak (e.g. '2026-09-01')
   contract_months?: number; // Durasi kontrak (default: 12 bulan)
+  bank_name?: string; // Nama Bank / E-Wallet (e.g. BCA, BRI, Mandiri, BNI, BSI, Bank Sumsel Babel)
+  account_number?: string; // Nomor Rekening
+  account_holder?: string; // Nama Pemilik Rekening / Atas Nama
   created_at?: string;
 }
 
@@ -89,6 +92,9 @@ export interface InvestorDividendSnapshot {
   dividend_amount: number;
   paid_status: 'paid' | 'pending';
   paid_at?: string;
+  bank_name?: string;
+  account_number?: string;
+  account_holder?: string;
 }
 
 export interface MonthlyClosing {

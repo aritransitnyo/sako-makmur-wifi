@@ -345,7 +345,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {inv.share_percentage}%
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-0.5 truncate">{inv.role}</p>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span className="text-[10px] text-slate-400">{inv.role}</span>
+                  {inv.account_number && (
+                    <span className="text-[9.5px] text-cyan-300 font-mono bg-slate-900 px-1.5 py-0.2 rounded border border-slate-800">
+                      {inv.bank_name || 'Bank'} {inv.account_number}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="text-right flex-shrink-0">

@@ -23,6 +23,9 @@ import {
   Zap,
   ArrowUpRight,
   Sparkles,
+  CreditCard,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { Investor, MonthlyClosing } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -82,6 +85,7 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingInvestor, setEditingInvestor] = useState<Investor | null>(null);
   const [investorToDelete, setInvestorToDelete] = useState<Investor | null>(null);
+  const [copiedInvId, setCopiedInvId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [role, setRole] = useState<'Managing Owner' | 'Investor'>('Investor');
@@ -89,6 +93,16 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
   const [sharePercentage, setSharePercentage] = useState(0);
   const [joinDate, setJoinDate] = useState('2026-09-01');
   const [contractMonths, setContractMonths] = useState(12);
+  const [bankName, setBankName] = useState('BCA');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+
+  const handleCopyAccount = (invId: string, accNo?: string) => {
+    if (!accNo) return;
+    navigator.clipboard.writeText(accNo);
+    setCopiedInvId(invId);
+    setTimeout(() => setCopiedInvId(null), 2200);
+  };
 
   const totalCapital = investors.reduce((sum, inv) => sum + inv.capital_invested, 0);
   const totalShares = investors.reduce((sum, inv) => sum + inv.share_percentage, 0);
@@ -137,6 +151,9 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
     setSharePercentage(0);
     setJoinDate(new Date().toISOString().split('T')[0]);
     setContractMonths(12);
+    setBankName('BCA');
+    setAccountNumber('');
+    setAccountHolder('');
     setShowModal(true);
   };
 
@@ -148,6 +165,9 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
     setSharePercentage(inv.share_percentage);
     setJoinDate(inv.join_date || '2026-09-01');
     setContractMonths(inv.contract_months || 12);
+    setBankName(inv.bank_name || 'BCA');
+    setAccountNumber(inv.account_number || '');
+    setAccountHolder(inv.account_holder || inv.name);
     setShowModal(true);
   };
 
@@ -164,6 +184,9 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
         share_percentage: sharePercentage,
         join_date: joinDate,
         contract_months: contractMonths || 12,
+        bank_name: bankName.trim(),
+        account_number: accountNumber.trim(),
+        account_holder: accountHolder.trim() || name.trim(),
       });
     } else {
       onAddInvestor({
@@ -173,6 +196,9 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
         share_percentage: sharePercentage,
         join_date: joinDate,
         contract_months: contractMonths || 12,
+        bank_name: bankName.trim(),
+        account_number: accountNumber.trim(),
+        account_holder: accountHolder.trim() || name.trim(),
       });
     }
 
@@ -456,15 +482,67 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                 </div>
               </div>
 
-              {/* Hak Dividen Bulan Berjalan Bar */}
-              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/40 via-slate-950 to-slate-950 border border-emerald-500/30 flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Hak Dividen Bulan Ini</p>
-                  <p className="text-[10.5px] text-slate-400 mt-0.5">Tutup buku &amp; transfer dividen tgl 25</p>
+              {/* Hak Dividen & Rekening Pencairan Box */}
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-950/40 via-slate-950 to-slate-950 border border-emerald-500/30 space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Hak Dividen Bulan Ini</p>
+                    <p className="text-[10.5px] text-slate-400 mt-0.5">Tutup buku &amp; transfer dividen tgl 25</p>
+                  </div>
+                  <span className="font-black text-base text-emerald-300">
+                    {formatRupiah(dividend)}
+                  </span>
                 </div>
-                <span className="font-black text-base text-emerald-300">
-                  {formatRupiah(dividend)}
-                </span>
+
+                {/* Rekening Tujuan Transfer Dividen */}
+                <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                      <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-medium">Rekening Tujuan Dividen:</p>
+                      {inv.account_number ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-1.5 py-0.2 rounded bg-slate-800 font-bold text-slate-200 text-xs border border-slate-700">
+                            {inv.bank_name || 'Bank'}
+                          </span>
+                          <span className="font-mono font-bold text-cyan-300 text-xs tracking-wider">{inv.account_number}</span>
+                          <span className="text-[11px] text-slate-400">a.n. {inv.account_holder || inv.name}</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(inv)}
+                          className="text-[11px] text-amber-400 hover:underline font-medium italic flex items-center gap-1"
+                        >
+                          ⚠️ Belum ada nomor rekening • Klik untuk mengisi
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {inv.account_number && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyAccount(inv.id, inv.account_number)}
+                      className="self-start sm:self-center px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10.5px] font-bold border border-slate-700 flex items-center gap-1.5 transition-all active:scale-95 flex-shrink-0"
+                      title="Salin nomor rekening ke clipboard"
+                    >
+                      {copiedInvId === inv.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />
+                          <span className="text-emerald-400 font-bold">Tersalin!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Salin No. Rek</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end pt-1 gap-2">
@@ -691,6 +769,63 @@ export const InvestorsView: React.FC<InvestorsViewProps> = ({
                     value={contractMonths}
                     onChange={(e) => setContractMonths(parseInt(e.target.value) || 12)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Informasi Rekening Bank untuk Dividen */}
+              <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-slate-200 font-bold text-xs">
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Rekening Pencairan Dividen Bulanan</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Nama Bank / E-Wallet</label>
+                    <input
+                      type="text"
+                      list="bank-list-suggestions"
+                      placeholder="Contoh: BCA / BRI"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500"
+                    />
+                    <datalist id="bank-list-suggestions">
+                      <option value="BCA" />
+                      <option value="BRI" />
+                      <option value="Bank Mandiri" />
+                      <option value="BNI" />
+                      <option value="BSI (Bank Syariah Indonesia)" />
+                      <option value="Bank Sumsel Babel" />
+                      <option value="Bank Jago" />
+                      <option value="SeaBank" />
+                      <option value="DANA" />
+                      <option value="GoPay" />
+                      <option value="OVO" />
+                    </datalist>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-400 mb-1 font-medium">Nomor Rekening</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: 1234567890"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-medium">Atas Nama (Pemilik Rekening)</label>
+                  <input
+                    type="text"
+                    placeholder={name ? `Contoh: ${name}` : 'Contoh: Ahmad Fauzi'}
+                    value={accountHolder}
+                    onChange={(e) => setAccountHolder(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>

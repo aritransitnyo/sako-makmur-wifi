@@ -67,7 +67,10 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
         const div = (netProfit * inv.share_percentage) / 100;
         const assetShare = (totalCapexSpent * inv.share_percentage) / 100;
         const contract = calculateContractProgress(inv.join_date, inv.contract_months || 12);
-        return `${idx + 1}. *${inv.name}* (${inv.role} - ${inv.share_percentage}% Saham)\n   • Modal Disetor : ${formatRupiah(inv.capital_invested)}\n   • Hak Dividen Bln Ini : *${formatRupiah(div)}* (Siap Transfer Tgl 25)\n   • Nilai Aset Penjamin : ${formatRupiah(assetShare)} (Starlink, FO, OLT)\n   • Status Kontrak : Bln ke-${contract.monthsPassed} dari ${contract.totalMonths} (${contract.startStr} - ${contract.endStr})`;
+        const bankLine = inv.account_number
+          ? `\n   • Rekening Transfer : *${inv.bank_name || 'Bank'} ${inv.account_number}* (a.n. ${inv.account_holder || inv.name})`
+          : '';
+        return `${idx + 1}. *${inv.name}* (${inv.role} - ${inv.share_percentage}% Saham)\n   • Modal Disetor : ${formatRupiah(inv.capital_invested)}\n   • Hak Dividen Bln Ini : *${formatRupiah(div)}* (Siap Transfer Tgl 25)${bankLine}\n   • Nilai Aset Penjamin : ${formatRupiah(assetShare)} (Starlink, FO, OLT)\n   • Status Kontrak : Bln ke-${contract.monthsPassed} dari ${contract.totalMonths} (${contract.startStr} - ${contract.endStr})`;
       })
       .join('\n\n');
 
@@ -221,7 +224,7 @@ Tertanda, Konsorsium Sako Makmur WiFi.`;
               <table className="w-full text-left text-[11px]">
                 <thead className="bg-slate-900 text-slate-400 border-b border-slate-800">
                   <tr>
-                    <th className="p-2.5">Nama Pemegang Saham</th>
+                    <th className="p-2.5">Nama &amp; Rekening Pemegang Saham</th>
                     <th className="p-2.5">Peran</th>
                     <th className="p-2.5">Masa Kontrak (1 Thn)</th>
                     <th className="p-2.5 text-center">Porsi (%)</th>
@@ -234,7 +237,16 @@ Tertanda, Konsorsium Sako Makmur WiFi.`;
                     const contract = calculateContractProgress(inv.join_date, inv.contract_months || 12);
                     return (
                       <tr key={inv.id}>
-                        <td className="p-2.5 font-bold text-slate-100">{inv.name}</td>
+                        <td className="p-2.5">
+                          <div className="font-bold text-slate-100">{inv.name}</div>
+                          {inv.account_number ? (
+                            <div className="text-[10px] text-cyan-300 font-mono mt-0.5">
+                              {inv.bank_name || 'Bank'} {inv.account_number} (a.n. {inv.account_holder || inv.name})
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-slate-500 italic mt-0.5">Rekening belum dicatat</div>
+                          )}
+                        </td>
                         <td className="p-2.5 text-slate-400">{inv.role}</td>
                         <td className="p-2.5 text-slate-300">
                           Bln ke-{contract.monthsPassed}/{contract.totalMonths} ({contract.startStr} - {contract.endStr})
