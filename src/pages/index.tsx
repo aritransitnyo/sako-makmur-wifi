@@ -218,7 +218,7 @@ export default function Home() {
   };
 
   // Payment confirmation with automatic Buku Kas sync & auto-unisolir
-  const handleConfirmPayment = (id: string, method: 'Tunai' | 'Transfer Bank') => {
+  const handleConfirmPayment = async (id: string, method: 'Tunai' | 'Transfer Bank') => {
     const targetSub = subscribers.find((s) => s.id === id);
     if (!targetSub) return;
 
@@ -235,7 +235,7 @@ export default function Home() {
         : s
     );
     setSubscribers(updated);
-    DataService.saveSubscribers(updated);
+    await DataService.saveSubscribers(updated);
 
     // Jika sebelumnya di-isolir, otomatis pulihkan internetnya di MikroTik saat bayar!
     if (wasSuspended && targetSub.username_pppoe) {
@@ -257,14 +257,14 @@ export default function Home() {
     const isCurrentPeriodClosed = closings.some((c) => c.period_key === currentPeriodKey);
 
     const incomeEntry: ExpenseTransaction = {
-      id: `inc-${Date.now()}`,
+      id: `inc-${targetSub.id}-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
       type: 'income',
       category: 'Iuran Bulanan Pelanggan',
       amount: amount,
       description: isCurrentPeriodClosed
-        ? `Iuran Susulan ${targetSub.full_name} (${method}) - Kas Masuk Periode Berikutnya`
-        : `Iuran ${targetSub.full_name} (${method})`,
+        ? `Iuran Susulan ${targetSub.full_name} (${method}) - Kas Masuk Periode Berikutnya [SubID:${targetSub.id}]`
+        : `Iuran ${targetSub.full_name} (${method}) [SubID:${targetSub.id}]`,
       fund_source: 'Kas Operasional',
       created_at: new Date().toISOString(),
     };
@@ -284,21 +284,45 @@ export default function Home() {
     }
 
     setExpenses(newExpensesList);
-    DataService.saveExpenses(newExpensesList);
+    await DataService.saveExpenses(newExpensesList);
   };
 
-  const handleCancelPayment = (id: string) => {
+  const handleCancelPayment = async (id: string) => {
+    const targetSub = subscribers.find((s) => s.id === id);
     const updated = subscribers.map((s) =>
       s.id === id ? { ...s, payment_status: 'unpaid' as const } : s
     );
     setSubscribers(updated);
-    DataService.saveSubscribers(updated);
+    await DataService.saveSubscribers(updated);
+
+    // TUGAS 1 (AUDIT FIX): Hapus transaksi kas masuk (type: 'income') terkait pelanggan ini di Buku Kas
+    let expList = [...expenses];
+    if (targetSub) {
+      const incomeEntriesToRemove = expList.filter(
+        (e) =>
+          e.type === 'income' &&
+          (e.id.includes(targetSub.id) ||
+            e.category === 'Iuran Bulanan Pelanggan' ||
+            e.category?.toLowerCase().includes('iuran')) &&
+          (e.id.includes(targetSub.id) ||
+            e.description?.includes(`[SubID:${targetSub.id}]`) ||
+            e.description?.toLowerCase().includes(targetSub.full_name.toLowerCase()) ||
+            (targetSub.username_pppoe && e.description?.toLowerCase().includes(targetSub.username_pppoe.toLowerCase())))
+      );
+
+      for (const inc of incomeEntriesToRemove) {
+        await DataService.deleteExpense(inc.id);
+      }
+
+      if (incomeEntriesToRemove.length > 0) {
+        expList = expList.filter((e) => !incomeEntriesToRemove.some((rem) => rem.id === e.id));
+      }
+    }
 
     // Auto-update Jasa Tagih Lapangan di Buku Kas saat batal bayar
     const { activePeriodKey, activePeriodMonth } = getActivePeriodInfo(closings);
     const newPaidCount = updated.filter((s) => s.status === 'active' && s.payment_status === 'paid').length;
     const collectorId = `exp-collector-${activePeriodKey}`;
-    const expList = [...expenses];
     const collectorIdx = expList.findIndex((e) => e.id === collectorId);
     if (collectorIdx >= 0) {
       expList[collectorIdx] = {
@@ -306,9 +330,10 @@ export default function Home() {
         amount: newPaidCount * Number(settings.collector_fee_per_user ?? 5000),
         description: `Jasa tagih iuran ${newPaidCount} user lunas x Rp 5.000 (${activePeriodMonth})`,
       };
-      setExpenses(expList);
-      DataService.saveExpenses(expList);
     }
+
+    setExpenses(expList);
+    await DataService.saveExpenses(expList);
   };
 
   const handleDeleteSubscriber = (id: string) => {
@@ -355,7 +380,7 @@ export default function Home() {
     DataService.deleteExpense(id);
   };
 
-  const handleSyncRoutineExpenses = () => {
+  const handleSyncRoutineExpenses = async () => {
     const { activePeriodKey, activePeriodMonth } = getActivePeriodInfo(closings);
     const periodDate = `${activePeriodKey}-01`;
     const paidCount = subscribers.filter((s) => s.status === 'active' && s.payment_status === 'paid').length;
@@ -445,7 +470,7 @@ export default function Home() {
     });
 
     setExpenses(updated);
-    DataService.saveExpenses(updated);
+    await DataService.saveExpenses(updated);
     alert(`⚡ Sukses Sinkronisasi Beban Rutin Periode ${activePeriodMonth}!\n${createdCount} transaksi baru dicatat, ${updatedCount} transaksi diperbarui.\nArsip periode lalu tetap aman & terlindungi dari duplikasi.`);
   };
 

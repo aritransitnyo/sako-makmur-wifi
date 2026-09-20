@@ -36,7 +36,7 @@ interface ExpensesViewProps {
   onAddExpense: (item: Omit<ExpenseTransaction, 'id' | 'created_at'>) => void;
   onUpdateExpense: (item: ExpenseTransaction) => void;
   onDeleteExpense: (id: string) => void;
-  onSyncRoutineExpenses?: () => void;
+  onSyncRoutineExpenses?: () => Promise<void> | void;
 }
 
 export const ExpensesView: React.FC<ExpensesViewProps> = ({
@@ -71,6 +71,20 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
     'Kas Operasional' | 'Kas Sisa Modal' | 'Kas Dana Cadangan (Maintenance)' | 'Dana Talangan Pengelola'
   >('Kas Operasional');
   const [receiptUrl, setReceiptUrl] = useState('');
+  const [isSyncingRoutine, setIsSyncingRoutine] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const handleSyncRoutineClick = async () => {
+    if (isSubmitting || isSyncingRoutine || !onSyncRoutineExpenses) return;
+    setIsSubmitting(true);
+    setIsSyncingRoutine(true);
+    try {
+      await onSyncRoutineExpenses();
+    } finally {
+      setIsSubmitting(false);
+      setIsSyncingRoutine(false);
+    }
+  };
 
   // Latest closing for period segregation
   const latestClosing = closings && closings.length > 0
@@ -234,12 +248,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         </div>
         {onSyncRoutineExpenses && (
           <button
-            onClick={onSyncRoutineExpenses}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs transition-colors flex-shrink-0 active:scale-95 shadow-sm"
+            onClick={handleSyncRoutineClick}
+            disabled={isSubmitting || isSyncingRoutine}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs transition-all flex-shrink-0 active:scale-95 shadow-sm ${
+              isSubmitting || isSyncingRoutine ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+            }`}
             title="Sinkronkan beban rutin (Starlink, Listrik, Gaji Operator 500rb, Marketing 50rb, Jasa Tagih) ke Buku Kas"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Sinkron Beban Rutin
+            <RefreshCw className={`w-3.5 h-3.5 ${isSubmitting || isSyncingRoutine ? 'animate-spin text-emerald-400' : ''}`} />
+            <span>{isSubmitting || isSyncingRoutine ? 'Menyinkronkan...' : 'Sinkron Beban Rutin'}</span>
           </button>
         )}
       </div>
@@ -279,11 +296,14 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         <div className="flex items-center gap-2">
           {onSyncRoutineExpenses && (
             <button
-              onClick={onSyncRoutineExpenses}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs border border-slate-700 transition-all active:scale-95"
+              onClick={handleSyncRoutineClick}
+              disabled={isSyncingRoutine}
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs border border-slate-700 transition-all active:scale-95 ${
+                isSyncingRoutine ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+              }`}
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Auto-Sync
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingRoutine ? 'animate-spin text-cyan-400' : ''}`} />
+              <span>{isSyncingRoutine ? 'Sinkron...' : 'Auto-Sync'}</span>
             </button>
           )}
           <button

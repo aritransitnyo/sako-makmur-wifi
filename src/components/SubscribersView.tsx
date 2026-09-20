@@ -36,8 +36,8 @@ interface SubscribersViewProps {
   onAddSubscriber: (sub: Omit<Subscriber, 'id'>) => void;
   onUpdateSubscriber: (sub: Subscriber) => void;
   onToggleStatus: (id: string, newStatus: 'active' | 'suspended' | 'terminated') => void;
-  onConfirmPayment: (id: string, method: 'Tunai' | 'Transfer Bank') => void;
-  onCancelPayment: (id: string) => void;
+  onConfirmPayment: (id: string, method: 'Tunai' | 'Transfer Bank') => Promise<void> | void;
+  onCancelPayment: (id: string) => Promise<void> | void;
   onDeleteSubscriber: (id: string) => void;
   onOpenMikrotikModal: () => void;
   onOpenBroadcastModal: () => void;
@@ -67,9 +67,37 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
 
   // Payment Confirmation Modal (Tunai vs Transfer Bank)
   const [payingSub, setPayingSub] = useState<Subscriber | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Kuitansi Modal State
   const [receiptSub, setReceiptSub] = useState<{ sub: Subscriber; method?: string } | null>(null);
+
+  const handlePaymentClick = async (sub: Subscriber, method: 'Tunai' | 'Transfer Bank') => {
+    if (isSubmitting || isProcessingPayment) return;
+    setIsSubmitting(true);
+    setIsProcessingPayment(true);
+    try {
+      await onConfirmPayment(sub.id, method);
+      setReceiptSub({ sub: { ...sub, payment_status: 'paid', payment_method: method }, method });
+      setPayingSub(null);
+    } finally {
+      setIsSubmitting(false);
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleCancelPaymentClick = async (subId: string) => {
+    if (isSubmitting || isProcessingPayment) return;
+    setIsSubmitting(true);
+    setIsProcessingPayment(true);
+    try {
+      await onCancelPayment(subId);
+    } finally {
+      setIsSubmitting(false);
+      setIsProcessingPayment(false);
+    }
+  };
 
   // Form State
   const [username, setUsername] = useState('');
@@ -454,18 +482,21 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                   <button
                     onClick={() => {
                       if (isPaid) {
-                        onCancelPayment(sub.id);
+                        handleCancelPaymentClick(sub.id);
                       } else {
                         setPayingSub(sub);
                       }
                     }}
+                    disabled={isSubmitting || isProcessingPayment}
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all ${
+                      isSubmitting || isProcessingPayment ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                    } ${
                       isPaid
                         ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                         : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-md shadow-emerald-500/20'
                     }`}
                   >
-                    {isPaid ? 'Batal Lunas' : 'Terima Bayar'}
+                    {isSubmitting ? 'Memproses...' : isPaid ? 'Batal Lunas' : 'Terima Iuran'}
                   </button>
 
                   {/* Tombol Cetak / PDF & Kuitansi (LSM NetOS) - Jika Sudah Lunas */}
@@ -707,29 +738,27 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
 
             <div className="grid grid-cols-2 gap-2.5">
               <button
-                onClick={() => {
-                  onConfirmPayment(payingSub.id, 'Tunai');
-                  setReceiptSub({ sub: { ...payingSub, payment_status: 'paid', payment_method: 'Tunai' }, method: 'Tunai' });
-                  setPayingSub(null);
-                }}
-                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200 group"
+                onClick={() => handlePaymentClick(payingSub, 'Tunai')}
+                disabled={isSubmitting || isProcessingPayment}
+                className={`p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200 group ${
+                  isSubmitting || isProcessingPayment ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                }`}
               >
                 <Banknote className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                <span>Uang Tunai</span>
+                <span>{isSubmitting ? 'Memproses...' : 'Uang Tunai'}</span>
                 <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                   <Printer className="w-3 h-3" /> + Cetak / PDF
                 </span>
               </button>
               <button
-                onClick={() => {
-                  onConfirmPayment(payingSub.id, 'Transfer Bank');
-                  setReceiptSub({ sub: { ...payingSub, payment_status: 'paid', payment_method: 'Transfer Bank' }, method: 'Transfer Bank' });
-                  setPayingSub(null);
-                }}
-                className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200 group"
+                onClick={() => handlePaymentClick(payingSub, 'Transfer Bank')}
+                disabled={isSubmitting || isProcessingPayment}
+                className={`p-3.5 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 flex flex-col items-center justify-center gap-1.5 active:scale-95 transition-all text-xs font-bold text-slate-200 group ${
+                  isSubmitting || isProcessingPayment ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                }`}
               >
                 <CreditCard className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
-                <span>Transfer Bank</span>
+                <span>{isSubmitting ? 'Memproses...' : 'Transfer Bank'}</span>
                 <span className="text-[10px] text-cyan-400 font-semibold flex items-center gap-1">
                   <Printer className="w-3 h-3" /> + Cetak / PDF
                 </span>
@@ -738,7 +767,10 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
 
             <button
               onClick={() => setPayingSub(null)}
-              className="w-full py-2 rounded-xl bg-slate-800 text-slate-400 text-xs font-medium"
+              disabled={isSubmitting || isProcessingPayment}
+              className={`w-full py-2 rounded-xl bg-slate-800 text-slate-400 text-xs font-medium ${
+                isSubmitting || isProcessingPayment ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+              }`}
             >
               Batal
             </button>
