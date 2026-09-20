@@ -270,6 +270,19 @@ export default function Home() {
     };
     newExpensesList.unshift(incomeEntry);
 
+    // Auto-update Jasa Tagih Lapangan di Buku Kas jika transaksi rutin periode ini sudah dicatat
+    const { activePeriodKey, activePeriodMonth } = getActivePeriodInfo(closings);
+    const newPaidCount = updated.filter((s) => s.status === 'active' && s.payment_status === 'paid').length;
+    const collectorId = `exp-collector-${activePeriodKey}`;
+    const collectorIdx = newExpensesList.findIndex((e) => e.id === collectorId);
+    if (collectorIdx >= 0) {
+      newExpensesList[collectorIdx] = {
+        ...newExpensesList[collectorIdx],
+        amount: newPaidCount * Number(settings.collector_fee_per_user ?? 5000),
+        description: `Jasa tagih iuran ${newPaidCount} user lunas x Rp 5.000 (${activePeriodMonth})`,
+      };
+    }
+
     setExpenses(newExpensesList);
     DataService.saveExpenses(newExpensesList);
   };
@@ -280,6 +293,22 @@ export default function Home() {
     );
     setSubscribers(updated);
     DataService.saveSubscribers(updated);
+
+    // Auto-update Jasa Tagih Lapangan di Buku Kas saat batal bayar
+    const { activePeriodKey, activePeriodMonth } = getActivePeriodInfo(closings);
+    const newPaidCount = updated.filter((s) => s.status === 'active' && s.payment_status === 'paid').length;
+    const collectorId = `exp-collector-${activePeriodKey}`;
+    const expList = [...expenses];
+    const collectorIdx = expList.findIndex((e) => e.id === collectorId);
+    if (collectorIdx >= 0) {
+      expList[collectorIdx] = {
+        ...expList[collectorIdx],
+        amount: newPaidCount * Number(settings.collector_fee_per_user ?? 5000),
+        description: `Jasa tagih iuran ${newPaidCount} user lunas x Rp 5.000 (${activePeriodMonth})`,
+      };
+      setExpenses(expList);
+      DataService.saveExpenses(expList);
+    }
   };
 
   const handleDeleteSubscriber = (id: string) => {
