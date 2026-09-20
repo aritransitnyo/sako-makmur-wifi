@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Shield,
   Wrench,
+  RefreshCw,
+  CheckCircle2,
 } from 'lucide-react';
 import { ExpenseTransaction } from '../types';
 import { formatRupiah } from './MetricCard';
@@ -30,6 +32,7 @@ interface ExpensesViewProps {
   onAddExpense: (item: Omit<ExpenseTransaction, 'id' | 'created_at'>) => void;
   onUpdateExpense: (item: ExpenseTransaction) => void;
   onDeleteExpense: (id: string) => void;
+  onSyncRoutineExpenses?: () => void;
 }
 
 export const ExpensesView: React.FC<ExpensesViewProps> = ({
@@ -42,6 +45,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
   onAddExpense,
   onUpdateExpense,
   onDeleteExpense,
+  onSyncRoutineExpenses,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseTransaction | null>(null);
@@ -186,6 +190,29 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
         </div>
       </div>
 
+      {/* Auto-Sync Banner & Single Source of Truth Notice */}
+      <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-md text-xs">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>Single Source of Truth: Pengeluaran Buku Kas = OPEX Dashboard</span>
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Semua item Kas Operasional di sini otomatis menjadi potongan biaya OPEX di Dashboard dan dividen investor tanpa selisih rupiah.
+          </p>
+        </div>
+        {onSyncRoutineExpenses && (
+          <button
+            onClick={onSyncRoutineExpenses}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold text-xs transition-colors flex-shrink-0 active:scale-95 shadow-sm"
+            title="Sinkronkan beban rutin (Starlink, Listrik, Gaji Operator 500rb, Marketing 50rb, Jasa Tagih) ke Buku Kas"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Sinkron Beban Rutin
+          </button>
+        )}
+      </div>
+
       {/* Button Catat Biaya Bar */}
       <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
         <div>
@@ -194,13 +221,24 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
             Total {expenses.length} Transaksi: <span className="text-rose-400 font-bold">{formatRupiah(totalExpense)}</span>
           </p>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-all active:scale-95"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          Catat Biaya
-        </button>
+        <div className="flex items-center gap-2">
+          {onSyncRoutineExpenses && (
+            <button
+              onClick={onSyncRoutineExpenses}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs border border-slate-700 transition-all active:scale-95"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Auto-Sync
+            </button>
+          )}
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            Catat Biaya
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -397,12 +435,14 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
                 >
                   <option value="Langganan Starlink">Langganan Starlink</option>
                   <option value="Listrik & Token PLN">Listrik &amp; Token PLN</option>
-                  <option value="Gaji Operator">Gaji Operator &amp; Helpdesk</option>
+                  <option value="Gaji Operator">Gaji Operator &amp; Helpdesk (Rp 500rb)</option>
+                  <option value="Komisi Marketing">Komisi Marketing (Rp 50rb)</option>
+                  <option value="Jasa Tagih Lapangan">Jasa Tagih Lapangan (Rp 5rb/user)</option>
                   <option value="Bensin & Transport">Bensin &amp; Transport Patroli</option>
                   <option value="Sparepart & Konektor FO">Sparepart &amp; Konektor FO Siaga</option>
                   <option value="Perbaikan Darurat / Force Majeure">Perbaikan Darurat / Force Majeure</option>
                   <option value="Ganti Router ONT Pelanggan">Ganti Router ONT Pelanggan</option>
-                  <option value="Lain-lain">Lain-lain / Konsumsi / Lakban</option>
+                  <option value="Lain-lain">Lain-lain / Operasional</option>
                 </select>
               </div>
 

@@ -325,6 +325,91 @@ export default function Home() {
     DataService.saveExpenses(updated);
   };
 
+  const handleSyncRoutineExpenses = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const paidCount = subscribers.filter((s) => s.status === 'active' && s.payment_status === 'paid').length;
+
+    const routineDefinitions = [
+      {
+        key: 'starlink',
+        category: 'Langganan Starlink',
+        amount: Number(settings.starlink_cost ?? 850000),
+        description: 'Tagihan bulanan Starlink Standard Kit',
+        fund_source: 'Kas Operasional' as const,
+      },
+      {
+        key: 'power',
+        category: 'Listrik & Token PLN',
+        amount: Number(settings.node_power_cost ?? 300000),
+        description: 'Token listrik PLN Node RT 01 & UPS',
+        fund_source: 'Kas Operasional' as const,
+      },
+      {
+        key: 'operator',
+        category: 'Gaji Operator',
+        amount: Number(settings.operator_salary ?? 500000),
+        description: 'Uang operasional & maintenance jaringan (Tahap Awal)',
+        fund_source: 'Kas Operasional' as const,
+      },
+      {
+        key: 'marketing',
+        category: 'Komisi Marketing',
+        amount: Number(settings.marketing_fee_monthly ?? 50000),
+        description: 'Komisi & insentif marketing rutin bulanan (Tahap Awal)',
+        fund_source: 'Kas Operasional' as const,
+      },
+      {
+        key: 'collector',
+        category: 'Jasa Tagih Lapangan',
+        amount: paidCount * Number(settings.collector_fee_per_user ?? 5000),
+        description: `Jasa tagih iuran ${paidCount} user lunas x Rp 5.000`,
+        fund_source: 'Kas Operasional' as const,
+      },
+    ];
+
+    let updated = [...expenses];
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    routineDefinitions.forEach((def) => {
+      const idx = updated.findIndex(
+        (e) =>
+          e.fund_source === 'Kas Operasional' &&
+          (e.category?.toLowerCase().includes(def.key) ||
+            def.category.toLowerCase().includes(e.category?.toLowerCase() || '') ||
+            e.description?.toLowerCase().includes(def.key))
+      );
+
+      if (idx >= 0) {
+        // Update existing routine expense amount to match current settings/subscribers
+        updated[idx] = {
+          ...updated[idx],
+          amount: def.amount,
+          description: def.description,
+          fund_source: 'Kas Operasional',
+        };
+        updatedCount++;
+      } else {
+        // Create new routine expense
+        const newExp: ExpenseTransaction = {
+          id: `exp-${def.key}-${Date.now()}`,
+          date: today,
+          category: def.category,
+          amount: def.amount,
+          description: def.description,
+          fund_source: 'Kas Operasional',
+          created_at: new Date().toISOString(),
+        };
+        updated.push(newExp);
+        createdCount++;
+      }
+    });
+
+    setExpenses(updated);
+    DataService.saveExpenses(updated);
+    alert(`⚡ Sukses Sinkronisasi Beban Rutin ke Buku Kas!\n${createdCount} transaksi baru ditambahkan, ${updatedCount} transaksi diperbarui.\nKini OPEX Dashboard dan Buku Kas 100% klop tanpa selisih.`);
+  };
+
   // Capex Handlers
   const handleAddCapex = (item: Omit<CapexItem, 'id' | 'total_price'>) => {
     const created: CapexItem = {
@@ -553,6 +638,7 @@ export default function Home() {
             onAddExpense={handleAddExpense}
             onUpdateExpense={handleUpdateExpense}
             onDeleteExpense={handleDeleteExpense}
+            onSyncRoutineExpenses={handleSyncRoutineExpenses}
           />
         )}
 

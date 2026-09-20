@@ -13,13 +13,16 @@ export interface FinancialSummary {
   totalPotensiOmzet: number; // Max potential revenue from all active subscribers
   uncollectedOmzet: number; // Outstanding unpaid dues
 
-  // OPEX components
+  // OPEX components (synchronized with Buku Kas)
   starlinkCost: number;
   nodePowerCost: number;
   operatorSalary: number;
   collectorFeePerUser: number;
   totalCollectorFee: number;
   marketingFee: number;
+  otherOpexCost: number; // Pengeluaran operasional riil lainnya dari Buku Kas (bensin, patroli, sparepart rutin)
+  kasOpexTotal: number; // Total kas operasional riil dari Buku Kas
+  isSyncedWithKas: boolean; // Flag sinkronisasi Buku Kas vs Dashboard
   reserveFundPct: number;
   reserveFundAmount: number; // Alokasi bulan berjalan (10%)
   cumulativeReserveFund: number; // Total saldo tabungan cadangan terkini (akumulasi)
@@ -47,6 +50,7 @@ export interface FinancialSummary {
     operatorPct: number;
     collectorPct: number;
     marketingPct: number;
+    otherOpexPct: number;
     reservePct: number;
   };
 }
@@ -59,12 +63,12 @@ export function calculateFinancials(
   expenses: ExpenseTransaction[] = [],
   closings: MonthlyClosing[] = []
 ): FinancialSummary {
-  // Safe defaults
-  const starlinkCost = Number(settings.starlink_cost ?? 850000);
-  const nodePowerCost = Number(settings.node_power_cost ?? 300000);
-  const operatorSalary = Number(settings.operator_salary ?? 1000000);
+  // Safe defaults from business settings / agreements
+  const defaultStarlink = Number(settings.starlink_cost ?? 850000);
+  const defaultNodePower = Number(settings.node_power_cost ?? 300000);
+  const defaultOperator = Number(settings.operator_salary ?? 500000);
   const collectorFeePerUser = Number(settings.collector_fee_per_user ?? 5000);
-  const marketingFee = Number(settings.marketing_fee_monthly ?? 250000);
+  const defaultMarketing = Number(settings.marketing_fee_monthly ?? 50000);
   const reserveFundPct = Number(settings.reserve_fund_pct ?? 10.0);
 
   // Subscribers segmentation
@@ -90,9 +94,6 @@ export function calculateFinancials(
 
   const uncollectedOmzet = Math.max(0, totalPotensiOmzet - totalOmzet);
 
-  // Collector fee is earned per paid user
-  const totalCollectorFee = paidCount * collectorFeePerUser;
-
   // Reserve fund (10% of real collected cash in for current period)
   const reserveFundAmount = Math.round(totalOmzet * (reserveFundPct / 100));
 
@@ -113,14 +114,97 @@ export function calculateFinancials(
   // 3. Current net cumulative reserve fund balance in savings account
   const cumulativeReserveFund = Math.max(0, totalReserveAllocated - reserveFundSpent);
 
-  // Total monthly OPEX (routine monthly running cost + 10% reserve transfer)
-  const totalOpex =
-    starlinkCost +
-    nodePowerCost +
-    operatorSalary +
-    totalCollectorFee +
-    marketingFee +
-    reserveFundAmount;
+  // 4. Synchronize with Buku Kas (Kas Operasional)
+  // Single Source of Truth: Operational expenditures recorded in Buku Kas
+  const opexExpenses = expenses.filter(
+    (e) => e.type !== 'income' && (!e.fund_source || e.fund_source === 'Kas Operasional')
+  );
+
+  const hasKasRecords = opexExpenses.length > 0;
+
+  let starlinkCost = 0;
+  let nodePowerCost = 0;
+  let operatorSalary = 0;
+  let totalCollectorFee = 0;
+  let marketingFee = 0;
+  let otherOpexCost = 0;
+
+  let hasStarlinkRecord = false;
+  let hasNodePowerRecord = false;
+  let hasOperatorRecord = false;
+  let hasCollectorRecord = false;
+  let hasMarketingRecord = false;
+
+  if (hasKasRecords) {
+    opexExpenses.forEach((e) => {
+      const cat = (e.category || '').toLowerCase();
+      const desc = (e.description || '').toLowerCase();
+      const amt = Number(e.amount) || 0;
+
+      if (cat.includes('starlink') || desc.includes('starlink')) {
+        starlinkCost += amt;
+        hasStarlinkRecord = true;
+      } else if (
+        cat.includes('listrik') ||
+        cat.includes('token') ||
+        desc.includes('listrik') ||
+        desc.includes('token') ||
+        desc.includes('pln')
+      ) {
+        nodePowerCost += amt;
+        hasNodePowerRecord = true;
+      } else if (
+        cat.includes('gaji') ||
+        cat.includes('operator') ||
+        desc.includes('gaji operator')
+      ) {
+        operatorSalary += amt;
+        hasOperatorRecord = true;
+      } else if (
+        cat.includes('tagih') ||
+        desc.includes('jasa tagih') ||
+        desc.includes('kolektor')
+      ) {
+        totalCollectorFee += amt;
+        hasCollectorRecord = true;
+      } else if (
+        cat.includes('marketing') ||
+        desc.includes('marketing') ||
+        desc.includes('promosi') ||
+        desc.includes('komisi')
+      ) {
+        marketingFee += amt;
+        hasMarketingRecord = true;
+      } else {
+        otherOpexCost += amt;
+      }
+    });
+  }
+
+  // Fallback for standard items if not yet registered in Buku Kas
+  if (!hasStarlinkRecord) starlinkCost = defaultStarlink;
+  if (!hasNodePowerRecord) nodePowerCost = defaultNodePower;
+  if (!hasOperatorRecord) operatorSalary = defaultOperator;
+  if (!hasCollectorRecord) totalCollectorFee = paidCount * collectorFeePerUser;
+  if (!hasMarketingRecord) marketingFee = defaultMarketing;
+
+  // Real operational expenses total from Buku Kas:
+  const kasOpexTotal = opexExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+  // If Buku Kas has records, we use the real cash spent in Buku Kas plus any unrecorded routine baseline
+  const unrecordedRoutine =
+    (!hasStarlinkRecord ? defaultStarlink : 0) +
+    (!hasNodePowerRecord ? defaultNodePower : 0) +
+    (!hasOperatorRecord ? defaultOperator : 0) +
+    (!hasCollectorRecord ? paidCount * collectorFeePerUser : 0) +
+    (!hasMarketingRecord ? defaultMarketing : 0);
+
+  const realOperationalSum = hasKasRecords
+    ? kasOpexTotal + unrecordedRoutine
+    : starlinkCost + nodePowerCost + operatorSalary + totalCollectorFee + marketingFee;
+
+  // Total monthly OPEX (Operational expenses + 10% reserve transfer)
+  const totalOpex = realOperationalSum + reserveFundAmount;
 
   // Net Profit (never negative for distribution safety)
   const rawNet = totalOmzet - totalOpex;
@@ -169,6 +253,7 @@ export function calculateFinancials(
     operatorPct: calcPct(operatorSalary),
     collectorPct: calcPct(totalCollectorFee),
     marketingPct: calcPct(marketingFee),
+    otherOpexPct: calcPct(otherOpexCost),
     reservePct: calcPct(reserveFundAmount),
   };
 
@@ -188,6 +273,9 @@ export function calculateFinancials(
     collectorFeePerUser,
     totalCollectorFee,
     marketingFee,
+    otherOpexCost,
+    kasOpexTotal,
+    isSyncedWithKas: hasKasRecords,
     reserveFundPct,
     reserveFundAmount,
     cumulativeReserveFund,

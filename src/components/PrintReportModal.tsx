@@ -44,7 +44,7 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
   }).format(new Date());
 
   // Calculations
-  const fin = calculateFinancials(subscribers, settings, investors, capexItems);
+  const fin = calculateFinancials(subscribers, settings, investors, capexItems, expenses);
   const activeSubs = fin.activeSubs;
   const paidSubs = fin.paidSubs;
 
@@ -92,15 +92,16 @@ export const PrintReportModal: React.FC<PrintReportModalProps> = ({
 • *Total Omzet Iuran* : *${formatRupiah(realCashIn)}*
 
 📌 *3. RINCIAN BEBAN OPERASIONAL (OPEX)*
-• Starlink Standard : ${formatRupiah(settings.starlink_cost)}
-• Listrik & Power Node : ${formatRupiah(settings.node_power_cost)}
-• Gaji Operator Lapangan : ${formatRupiah(settings.operator_salary)}
+• Starlink Standard : ${formatRupiah(fin.starlinkCost)}
+• Listrik & Power Node : ${formatRupiah(fin.nodePowerCost)}
+• Gaji Operator Lapangan : ${formatRupiah(fin.operatorSalary)} (Tahap Awal)
 • Jasa Tagih (${paidCount} user x 5rb) : ${formatRupiah(collectorFee)}
-• Jasa Marketing : ${formatRupiah(settings.marketing_fee_monthly || 50000)}
+• Komisi Marketing : ${formatRupiah(fin.marketingFee)} (Tahap Awal)${fin.otherOpexCost > 0 ? `\n• Operasional Lapangan (Buku Kas) : ${formatRupiah(fin.otherOpexCost)}` : ''}
 • Cadangan Maintenance (10%) : ${formatRupiah(reserveFund)}
   └ *Saldo Tabungan Siaga* : *${formatRupiah(fin.cumulativeReserveFund || reserveFund)}* (Rekening Khusus)
 ────────────────────
-• *Total Beban OPEX* : *${formatRupiah(realOpex)}*
+• *Total Kas Operasional Riil (Buku Kas)* : *${formatRupiah(fin.kasOpexTotal)}*
+• *Total Beban OPEX (+Cadangan 10%)* : *${formatRupiah(realOpex)}*
 
 📌 *4. LABA BERSIH SIAP BAGI (NET PROFIT)*
 • *Surplus Laba Bersih* : *${formatRupiah(netProfit)}*

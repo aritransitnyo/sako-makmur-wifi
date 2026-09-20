@@ -42,9 +42,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [starlinkCost, setStarlinkCost] = useState(settings.starlink_cost);
   const [nodePowerCost, setNodePowerCost] = useState(settings.node_power_cost);
-  const [operatorSalary, setOperatorSalary] = useState(settings.operator_salary);
+  const [operatorSalary, setOperatorSalary] = useState(settings.operator_salary ?? 500000);
   const [collectorFee, setCollectorFee] = useState(settings.collector_fee_per_user ?? 5000);
-  const [marketingFee, setMarketingFee] = useState(settings.marketing_fee_monthly ?? 250000);
+  const [marketingFee, setMarketingFee] = useState(settings.marketing_fee_monthly ?? 50000);
   const [reservePct, setReservePct] = useState(settings.reserve_fund_pct);
 
   // Unified financial calculations
@@ -197,11 +197,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Visual OPEX Stacked Allocation */}
       <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 uppercase tracking-wider truncate">
-            <Zap className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-            Alokasi Biaya OPEX &amp; Komisi
-          </h3>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 uppercase tracking-wider truncate">
+              <Zap className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              Alokasi Biaya OPEX &amp; Komisi
+            </h3>
+            {fin.isSyncedWithKas && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[9.5px] font-bold text-emerald-400">
+                <CheckCircle2 className="w-2.5 h-2.5" />
+                Sinkron Buku Kas
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             <span className="text-[11px] font-bold text-amber-400">
               {formatRupiah(fin.totalOpex)}
@@ -210,9 +218,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               onClick={() => {
                 setStarlinkCost(settings.starlink_cost);
                 setNodePowerCost(settings.node_power_cost);
-                setOperatorSalary(settings.operator_salary);
+                setOperatorSalary(settings.operator_salary ?? 500000);
                 setCollectorFee(settings.collector_fee_per_user ?? 5000);
-                setMarketingFee(settings.marketing_fee_monthly ?? 250000);
+                setMarketingFee(settings.marketing_fee_monthly ?? 50000);
                 setReservePct(settings.reserve_fund_pct);
                 setShowSettingsModal(true);
               }}
@@ -251,6 +259,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             style={{ width: `${fin.opexBreakdown.marketingPct}%` }}
             title={`Marketing: ${fin.opexBreakdown.marketingPct}%`}
           />
+          {fin.opexBreakdown.otherOpexPct > 0 && (
+            <div
+              className="bg-orange-500 transition-all duration-500"
+              style={{ width: `${fin.opexBreakdown.otherOpexPct}%` }}
+              title={`Operasional Lainnya: ${fin.opexBreakdown.otherOpexPct}%`}
+            />
+          )}
           <div
             className="bg-emerald-500 rounded-r-full transition-all duration-500"
             style={{ width: `${fin.opexBreakdown.reservePct}%` }}
@@ -277,7 +292,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center justify-between text-slate-300">
             <span className="flex items-center gap-1.5 text-slate-400 truncate">
               <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-              Gaji Operator
+              Gaji Operator (Menyesuaikan)
             </span>
             <span className="font-semibold">{formatRupiah(fin.operatorSalary)}</span>
           </div>
@@ -291,10 +306,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center justify-between text-slate-300">
             <span className="flex items-center gap-1.5 text-slate-400 truncate">
               <span className="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0" />
-              Jasa Marketing
+              Komisi Marketing
             </span>
             <span className="font-semibold">{formatRupiah(fin.marketingFee)}</span>
           </div>
+          {fin.otherOpexCost > 0 && (
+            <div className="flex items-center justify-between text-slate-300">
+              <span className="flex items-center gap-1.5 text-slate-400 truncate">
+                <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+                Operasional Lainnya (Kas)
+              </span>
+              <span className="font-semibold text-orange-300">{formatRupiah(fin.otherOpexCost)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-slate-300">
             <span className="flex items-center gap-1.5 text-slate-400 truncate">
               <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
@@ -310,6 +334,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
         </div>
+
+        {fin.isSyncedWithKas && (
+          <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between flex-wrap gap-1">
+            <span className="flex items-center gap-1 text-emerald-400">
+              <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+              Kas Operasional Riil: <strong className="font-mono text-slate-200">{formatRupiah(fin.kasOpexTotal)}</strong>
+            </span>
+            <span className="text-slate-400">
+              + Cadangan: <strong className="font-mono text-emerald-400">{formatRupiah(fin.reserveFundAmount)}</strong> = Total OPEX: <strong className="font-mono text-amber-400">{formatRupiah(fin.totalOpex)}</strong>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Dividen Investor Section */}
@@ -454,6 +490,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
                   required
                 />
+                <p className="text-[10px] text-slate-500">Default: Rp 500.000 / bulan (Tahap awal penyesuaian pelanggan)</p>
               </div>
 
               <div className="space-y-1">
@@ -477,7 +514,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500"
                   required
                 />
-                <p className="text-[10px] text-slate-500">Default: Rp 250.000 / bulan</p>
+                <p className="text-[10px] text-slate-500">Default: Rp 50.000 / bulan (Tahap awal)</p>
               </div>
 
               <div className="space-y-1">

@@ -44,7 +44,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const capex = capexData && capexData.length > 0 ? capexData : fallbackState.capex;
     const closings = fallbackState.closings || [];
-    const expenses = fallbackState.expenses || [];
+
+    // 5. Fetch expenses from Supabase
+    const { data: expData } = await supabase
+      .from('expenses')
+      .select('*');
+    const expenses = expData && expData.length > 0 ? expData : (fallbackState.expenses || []);
 
     // Calculations
     const activeSubs = subscribers.filter((s: any) => s.status === 'active');
@@ -57,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const collectorFeePerUser = Number(settings.collector_fee_per_user) || 5000;
     const totalCollectorFee = paidSubs.length * collectorFeePerUser;
-    const marketingFee = Number(settings.marketing_fee_monthly) || 250000;
+    const marketingFee = Number(settings.marketing_fee_monthly) || 50000;
     const reserveFundPct = Number(settings.reserve_fund_pct) || 10.0;
     const reserveFundAmount = Math.round(totalOmzet * (reserveFundPct / 100));
 
@@ -72,13 +77,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
     const cumulativeReserveFund = Math.max(0, totalReserveAllocated - reserveFundSpent);
 
-    const totalOpex =
-      Number(settings.starlink_cost) +
-      Number(settings.node_power_cost) +
-      Number(settings.operator_salary) +
-      totalCollectorFee +
-      marketingFee +
-      reserveFundAmount;
+    // Operational expenses from Buku Kas (Kas Operasional)
+    const opexExpenses = expenses.filter(
+      (e: any) => e.type !== 'income' && (!e.fund_source || e.fund_source === 'Kas Operasional')
+    );
+    const kasOpexTotal = opexExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+
+    const totalOpex = (opexExpenses.length > 0
+      ? kasOpexTotal
+      : Number(settings.starlink_cost || 850000) +
+        Number(settings.node_power_cost || 300000) +
+        Number(settings.operator_salary || 500000) +
+        totalCollectorFee +
+        marketingFee) + reserveFundAmount;
 
     const netProfit = Math.max(0, totalOmzet - totalOpex);
 
