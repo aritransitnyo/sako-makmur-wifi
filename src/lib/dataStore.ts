@@ -686,11 +686,43 @@ export class DataService {
 
   // Expenses (Buku Kas Riil)
   static async getExpenses(): Promise<{ data: ExpenseTransaction[]; isSupabase: boolean }> {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .order('date', { ascending: false });
+      if (!error && data && data.length > 0) {
+        this.setLocal('expenses', data);
+        return { data, isSupabase: true };
+      }
+    } catch {}
     return { data: this.getLocal('expenses', DEFAULT_EXPENSES), isSupabase: false };
   }
 
   static async saveExpenses(expenses: ExpenseTransaction[]): Promise<void> {
     this.setLocal('expenses', expenses);
+    try {
+      for (const exp of expenses) {
+        const payload = {
+          id: exp.id,
+          date: exp.date,
+          category: exp.category,
+          amount: Number(exp.amount) || 0,
+          description: exp.description || '',
+          fund_source: exp.fund_source || 'Kas Operasional',
+          receipt_url: exp.receipt_url || null,
+        };
+        await supabase.from('expenses').upsert(payload);
+      }
+    } catch (e) {
+      console.warn('[Supabase saveExpenses error]:', e);
+    }
+  }
+
+  static async deleteExpense(id: string): Promise<void> {
+    try {
+      await supabase.from('expenses').delete().eq('id', id);
+    } catch {}
   }
 
   // Monthly Closings (Riwayat Tutup Buku & Dividen)

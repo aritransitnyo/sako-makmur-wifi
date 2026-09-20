@@ -352,6 +352,7 @@ export default function Home() {
     const updated = expenses.filter((e) => e.id !== id);
     setExpenses(updated);
     DataService.saveExpenses(updated);
+    DataService.deleteExpense(id);
   };
 
   const handleSyncRoutineExpenses = () => {
