@@ -108,43 +108,6 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [dueDate, setDueDate] = useState<number>(10);
-  const [isIsolating, setIsIsolating] = useState(false);
-
-  const handleRunAutoIsolir = async () => {
-    if (unpaidSubscribers.length === 0) return;
-    const confirmMsg = `Peringatan Auto-Isolir Tgl 18:\n\nAda ${unpaidSubscribers.length} pelanggan belum bayar:\n` +
-      unpaidSubscribers.map((s) => `• ${s.full_name} (${s.username_pppoe || '-'})`).join('\n') +
-      `\n\nEksekusi pemutusan internet di Router MikroTik sekarang?`;
-    if (!window.confirm(confirmMsg)) return;
-
-    setIsIsolating(true);
-    let successCount = 0;
-    try {
-      for (const sub of unpaidSubscribers) {
-        onToggleStatus(sub.id, 'suspended');
-        if (sub.username_pppoe) {
-          try {
-            await fetch('/api/mikrotik', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'isolir_user',
-                name: sub.username_pppoe,
-                isolate: true,
-              }),
-            });
-            successCount++;
-          } catch (e) {
-            console.warn('Gagal isolir:', sub.username_pppoe, e);
-          }
-        }
-      }
-      alert(`Auto-Isolir Selesai: ${successCount} pelanggan berhasil diputus di router MikroTik.`);
-    } finally {
-      setIsIsolating(false);
-    }
-  };
-
   const handleOpenAdd = () => {
     setEditingSub(null);
     setUsername('');
@@ -197,6 +160,8 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   });
 
   const activeSubscribers = subscribers.filter((s) => s.status === 'active');
+  const suspendedSubscribers = subscribers.filter((s) => s.status === 'suspended');
+  const terminatedSubscribers = subscribers.filter((s) => s.status === 'terminated');
   const paidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'paid');
   const unpaidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'unpaid');
 
@@ -311,51 +276,24 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         </div>
       </div>
 
-      {/* Siklus Tagihan Quick Actions: Broadcast Tgl 10 & Auto-Isolir Tgl 18 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
-          <div>
-            <p className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <Send className="w-3.5 h-3.5 text-cyan-400" />
-              Siklus Tagihan
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Broadcast WA Tgl 10 / Warning Tgl 18
-            </p>
-          </div>
-          <button
-            onClick={onOpenBroadcastModal}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-md shadow-cyan-500/20 flex items-center gap-1.5 transition-all active:scale-95"
-          >
-            <Send className="w-3.5 h-3.5" />
-            Broadcast WA
-          </button>
+      {/* Siklus Tagihan: broadcast manual saja; isolir otomatis dinonaktifkan */}
+      <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
+        <div>
+          <p className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+            <Send className="w-3.5 h-3.5 text-cyan-400" />
+            Siklus Tagihan
+          </p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            Broadcast WA Tgl 10 / Warning Tgl 18
+          </p>
         </div>
-
-        <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between shadow-md">
-          <div>
-            <p className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-              Auto-Isolir MikroTik (Tgl 18)
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {unpaidSubscribers.length > 0
-                ? `${unpaidSubscribers.length} penunggak siap di-isolir`
-                : 'Semua lunas (router aman)'}
-            </p>
-          </div>
-          <button
-            onClick={handleRunAutoIsolir}
-            disabled={unpaidSubscribers.length === 0 || isIsolating}
-            className={`px-3.5 py-2 rounded-xl font-black text-xs shadow-md flex items-center gap-1.5 transition-all active:scale-95 ${
-              unpaidSubscribers.length > 0
-                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
-                : 'bg-slate-800/80 text-slate-500 cursor-not-allowed'
-            }`}
-          >
-            {isIsolating ? 'Memproses...' : '⚡ Eksekusi Isolir'}
-          </button>
-        </div>
+        <button
+          onClick={onOpenBroadcastModal}
+          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-md shadow-cyan-500/20 flex items-center gap-1.5 transition-all active:scale-95"
+        >
+          <Send className="w-3.5 h-3.5" />
+          Broadcast WA
+        </button>
       </div>
 
       {/* Search & Filter Tabs */}
@@ -372,7 +310,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         </div>
 
         {/* Status Tabs */}
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
           <button
             onClick={() => setFilterTab('all')}
             className={`py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
@@ -411,15 +349,22 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
             }`}
           >
-            Isolir ({subscribers.length - activeSubscribers.length})
+            Isolir ({suspendedSubscribers.length})
           </button>
         </div>
+        {suspendedSubscribers.length > 0 && (
+          <p className="text-[10px] text-rose-300 flex items-center gap-1 px-1">
+            <AlertCircle className="w-3 h-3" />
+            {suspendedSubscribers.length} pelanggan sedang terisolir dan internetnya diputus di MikroTik.
+          </p>
+        )}
       </div>
 
       {/* Subscriber Cards */}
       <div className="space-y-2.5">
         {filtered.map((sub) => {
           const isActive = sub.status === 'active';
+          const isSuspended = sub.status === 'suspended';
           const isPaid = sub.payment_status === 'paid';
           const hasPhone = Boolean(sub.phone);
 
@@ -433,6 +378,11 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="font-bold text-xs sm:text-sm text-slate-100 truncate">{sub.full_name}</p>
+                    {isSuspended && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border bg-rose-500/15 text-rose-300 border-rose-500/40 flex-shrink-0">
+                        ISOLIR
+                      </span>
+                    )}
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border flex-shrink-0 ${
                         isPaid
@@ -531,7 +481,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                         : 'bg-cyan-950/40 text-cyan-300 border-cyan-800/40 hover:bg-cyan-900/50'
                     }`}
                   >
-                    {isActive ? 'Isolir' : 'Aktif'}
+                    {isActive ? 'Isolir' : isSuspended ? 'Aktifkan' : 'Aktif'}
                   </button>
 
                   {/* Edit button */}
