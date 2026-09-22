@@ -146,7 +146,6 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
         <section class="customer">
           <div class="section-label">DITERIMA DARI</div>
           <h2>${subscriber.full_name}</h2>
-          <p>Username PPPoE: <strong>${subscriber.username_pppoe}</strong></p>
           ${subscriber.address ? `<p>Alamat: ${subscriber.address}</p>` : ''}
         </section>
         <table><thead><tr><th>Deskripsi</th><th>Periode</th><th>Jumlah</th></tr></thead>
@@ -165,29 +164,30 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
   <style>
     @page { size: 8.5in 13in; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #fff; color: #111827; }
-    body { width: 8.5in; min-height: 13in; font-family: Arial, Helvetica, sans-serif; }
-    .invoice { width: 7.7in; min-height: 11.9in; margin: 0.55in auto; padding: 0.58in; border: 1px solid #dbe3ea; border-radius: 18px; color: #14212b; background: #fff; }
-    .invoice-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #0f766e; padding-bottom:26px; }
-    .eyebrow,.section-label { color:#0f766e; font-size:11px; font-weight:700; letter-spacing:2px; }
-    .invoice h1 { margin:8px 0 5px; font-size:27px; letter-spacing:1px; }
-    .invoice p { margin:5px 0; color:#60707b; font-size:12px; }
-    .status { color:#047857; background:#ecfdf5; border:1px solid #86efac; border-radius:999px; padding:10px 18px; font-weight:800; letter-spacing:1px; }
-    .meta { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; padding:25px 0; border-bottom:1px solid #e5e7eb; }
-    .meta span,.summary span { display:block; color:#6b7280; font-size:11px; margin-bottom:6px; }
-    .meta strong,.summary strong { font-size:13px; }
-    .customer { padding:30px 0 26px; }
-    .customer h2 { margin:8px 0; font-size:21px; }
-    table { width:100%; border-collapse:collapse; margin:10px 0 26px; font-size:12px; }
-    th { text-align:left; color:#6b7280; background:#f8fafc; padding:13px; border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; }
-    td { padding:18px 13px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
+    html, body { margin: 0 !important; padding: 0 !important; width: 8.5in; height: 13in; max-height: 13in; overflow: hidden; background: #fff; color: #111827; }
+    body { font-family: Arial, Helvetica, sans-serif; }
+    .invoice { width: 7.7in; height: 12.1in; max-height: 12.1in; margin: 0.45in auto 0 !important; padding: 0.58in; border: 1px solid #dbe3ea; border-radius: 20px; color: #14212b; background: #fff; break-before: avoid; break-after: avoid; break-inside: avoid; page-break-before: avoid; page-break-after: avoid; page-break-inside: avoid; }
+    .invoice-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #0f766e; padding-bottom:28px; }
+    .eyebrow,.section-label { color:#0f766e; font-size:10px; font-weight:800; letter-spacing:2px; }
+    .invoice h1 { margin:9px 0 5px; font-size:25px; letter-spacing:.8px; }
+    .invoice p { margin:6px 0; color:#64748b; font-size:12px; }
+    .status { color:#047857; background:#ecfdf5; border:1px solid #86efac; border-radius:999px; padding:10px 18px; font-weight:800; letter-spacing:1px; font-size:12px; }
+    .meta { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; padding:27px 0; border-bottom:1px solid #e5e7eb; }
+    .meta span,.summary span { display:block; color:#64748b; font-size:10px; margin-bottom:7px; text-transform:uppercase; letter-spacing:.5px; }
+    .meta strong,.summary strong { font-size:13px; color:#172b3a; }
+    .customer { padding:32px 0 28px; }
+    .customer h2 { margin:10px 0 0; font-size:23px; color:#14212b; }
+    table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border:1px solid #dbe3ea; border-radius:12px; margin:10px 0 28px; font-size:12px; }
+    th { text-align:left; color:#475569; background:#f1f5f9; padding:14px; border-bottom:1px solid #dbe3ea; font-size:10px; text-transform:uppercase; letter-spacing:.6px; }
+    td { padding:20px 14px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
+    tr:last-child td { border-bottom:0; }
     th:last-child,td:last-child { text-align:right; }
-    td small { display:block; color:#6b7280; margin-top:5px; }
-    .summary { display:flex; justify-content:space-between; align-items:flex-end; padding:18px 0 28px; }
+    td small { display:block; color:#64748b; margin-top:6px; }
+    .summary { display:flex; justify-content:space-between; align-items:flex-end; padding:20px 0 30px; }
     .total { text-align:right; }
-    .total strong { display:block; color:#047857; font-size:25px; margin-top:5px; }
-    .note { padding:18px; background:#f0fdfa; border-left:4px solid #0f766e; color:#285e61; font-size:12px; line-height:1.6; }
-    .invoice footer { display:flex; justify-content:space-between; margin-top:80px; padding-top:16px; border-top:1px solid #e5e7eb; color:#83919b; font-size:10px; }
+    .total strong { display:block; color:#047857; font-size:27px; margin-top:6px; }
+    .note { padding:18px 20px; background:#f0fdfa; border:1px solid #99f6e4; border-left:4px solid #0f766e; border-radius:10px; color:#285e61; font-size:12px; line-height:1.6; }
+    .invoice footer { display:flex; justify-content:space-between; margin-top:92px; padding-top:17px; border-top:1px solid #e5e7eb; color:#83919b; font-size:10px; }
     #lsm-receipt-print {
       width: 7.7in !important;
       height: 12.1in !important;
