@@ -23,7 +23,7 @@ import {
   Receipt,
   Printer,
 } from 'lucide-react';
-import { Subscriber, PppoePackage } from '../types';
+import { Subscriber, PppoePackage, PaymentHistory } from '../types';
 import { formatRupiah } from './MetricCard';
 import { ConfirmModal } from './ConfirmModal';
 import { ReceiptModal } from './ReceiptModal';
@@ -31,6 +31,7 @@ import { ReceiptModal } from './ReceiptModal';
 interface SubscribersViewProps {
   businessName: string;
   subscribers: Subscriber[];
+  paymentHistory: PaymentHistory[];
   packages: PppoePackage[];
   collectorFeePerUser?: number;
   onAddSubscriber: (sub: Omit<Subscriber, 'id'>) => void;
@@ -46,6 +47,7 @@ interface SubscribersViewProps {
 export const SubscribersView: React.FC<SubscribersViewProps> = ({
   businessName,
   subscribers,
+  paymentHistory,
   packages,
   collectorFeePerUser = 5000,
   onAddSubscriber,
@@ -59,6 +61,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'unpaid' | 'paid' | 'suspended'>('all');
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscriber | null>(null);
 
@@ -243,6 +246,14 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowPaymentHistory(true)}
+              className="p-2 sm:px-3 sm:py-2.5 rounded-xl bg-slate-800 text-emerald-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold"
+              title="Lihat riwayat pembayaran"
+            >
+              <Receipt className="w-4 h-4" />
+              <span className="text-[11px]">Riwayat Bayar</span>
+            </button>
+            <button
               onClick={onOpenMikrotikModal}
               className="p-2 sm:px-3 sm:py-2.5 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 border border-slate-700 text-xs flex items-center gap-1.5 transition-colors font-bold"
               title="Kelola Router MikroTik & OLT HiOSO"
@@ -359,6 +370,37 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
           </p>
         )}
       </div>
+
+      {showPaymentHistory && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg max-h-[85vh] overflow-hidden rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h2 className="font-black text-slate-100">Riwayat Pembayaran</h2>
+                <p className="text-[11px] text-slate-400">Arsip pembayaran tersimpan permanen per periode</p>
+              </div>
+              <button onClick={() => setShowPaymentHistory(false)} className="p-2 text-slate-400 hover:text-white" title="Tutup">✕</button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[70vh] space-y-2">
+              {paymentHistory.length === 0 ? (
+                <p className="text-center text-sm text-slate-500 py-8">Belum ada riwayat pembayaran tersimpan.</p>
+              ) : paymentHistory.map((payment) => (
+                <div key={payment.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-100 truncate">{payment.subscriber_name}</p>
+                    <p className="text-[10px] text-cyan-300 font-mono">{payment.username_pppoe || '-'} • Periode {payment.period_key}</p>
+                    <p className="text-[10px] text-slate-500">{new Date(payment.paid_at).toLocaleString('id-ID')} • {payment.payment_method}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs font-black text-emerald-400">{formatRupiah(payment.amount)}</p>
+                    <p className="text-[9px] text-slate-500">{payment.receipt_number}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Subscriber Cards */}
       <div className="space-y-2.5">

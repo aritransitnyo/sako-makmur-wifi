@@ -8,6 +8,7 @@ import {
   ExpenseTransaction,
   MonthlyClosing,
   InvestorDividendSnapshot,
+  PaymentHistory,
 } from '../types';
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
@@ -682,6 +683,29 @@ export class DataService {
         await supabase.from('subscribers').upsert(sub);
       }
     } catch {}
+  }
+
+  // Payment history (immutable audit trail)
+  static async getPaymentHistory(): Promise<{ data: PaymentHistory[]; isSupabase: boolean }> {
+    try {
+      const { data, error } = await supabase.from('payment_history').select('*').order('paid_at', { ascending: false });
+      if (!error && data) {
+        this.setLocal('payment_history', data);
+        return { data, isSupabase: true };
+      }
+    } catch {}
+    return { data: this.getLocal('payment_history', []), isSupabase: false };
+  }
+
+  static async savePaymentHistory(history: PaymentHistory[]): Promise<void> {
+    this.setLocal('payment_history', history);
+    try {
+      for (const payment of history) {
+        await supabase.from('payment_history').upsert(payment);
+      }
+    } catch (e) {
+      console.warn('[Supabase savePaymentHistory error]:', e);
+    }
   }
 
   // Expenses (Buku Kas Riil)

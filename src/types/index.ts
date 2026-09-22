@@ -45,6 +45,19 @@ export interface PppoePackage {
   created_at?: string;
 }
 
+export interface PaymentHistory {
+  id: string;
+  subscriber_id: string;
+  subscriber_name: string;
+  username_pppoe?: string;
+  period_key: string;
+  paid_at: string;
+  amount: number;
+  payment_method: 'Tunai' | 'Transfer Bank';
+  receipt_number: string;
+  created_at?: string;
+}
+
 export interface Subscriber {
   id: string;
   username_pppoe: string;

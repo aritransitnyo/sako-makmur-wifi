@@ -35,6 +35,7 @@ import {
   Subscriber,
   ExpenseTransaction,
   MonthlyClosing,
+  PaymentHistory,
 } from '../types';
 
 export default function Home() {
@@ -60,6 +61,7 @@ export default function Home() {
   const [packages, setPackages] = useState<PppoePackage[]>(DEFAULT_PACKAGES);
   const [capexItems, setCapexItems] = useState<CapexItem[]>(DEFAULT_CAPEX);
   const [subscribers, setSubscribers] = useState<Subscriber[]>(DEFAULT_SUBSCRIBERS);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
   const [expenses, setExpenses] = useState<ExpenseTransaction[]>(DEFAULT_EXPENSES);
   const [closings, setClosings] = useState<MonthlyClosing[]>(DEFAULT_CLOSINGS);
 
@@ -91,13 +93,14 @@ export default function Home() {
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [resSettings, resInvestors, resCapex, resPackages, resSubs, resExpenses, resClosings] =
+      const [resSettings, resInvestors, resCapex, resPackages, resSubs, resPayments, resExpenses, resClosings] =
         await Promise.all([
           DataService.getSettings(),
           DataService.getInvestors(),
           DataService.getCapex(),
           DataService.getPackages(),
           DataService.getSubscribers(),
+          DataService.getPaymentHistory(),
           DataService.getExpenses(),
           DataService.getMonthlyClosings(),
         ]);
@@ -107,6 +110,7 @@ export default function Home() {
       setCapexItems(resCapex.data);
       setPackages(resPackages.data);
       setSubscribers(resSubs.data);
+      setPaymentHistory(resPayments.data);
       setExpenses(resExpenses.data);
       setClosings(resClosings.data);
 
@@ -223,7 +227,25 @@ export default function Home() {
     if (!targetSub) return;
 
     const wasSuspended = targetSub.status === 'suspended';
-    const updated = subscribers.map((s) =>
+    const paidAt = new Date().toISOString();
+    const periodKey = paidAt.slice(0, 7);
+    const payment: PaymentHistory = {
+      id: `pay-${targetSub.id}-${periodKey}-${Date.now()}`,
+      subscriber_id: targetSub.id,
+      subscriber_name: targetSub.full_name,
+      username_pppoe: targetSub.username_pppoe,
+      period_key: periodKey,
+      paid_at: paidAt,
+      amount: targetSub.package_price || 200000,
+      payment_method: method,
+      receipt_number: `LSM-${periodKey.replace('-', '')}-${Date.now().toString().slice(-6)}`,
+      created_at: paidAt,
+    };
+    const nextHistory = [payment, ...paymentHistory.filter((item) => !(item.subscriber_id === payment.subscriber_id && item.period_key === payment.period_key))];
+    setPaymentHistory(nextHistory);
+    await DataService.savePaymentHistory(nextHistory);
+
+    const updated = subscribers.map((s) => (
       s.id === id
         ? {
             ...s,
@@ -233,7 +255,7 @@ export default function Home() {
             last_paid_at: new Date().toISOString(),
           }
         : s
-    );
+    ));
     setSubscribers(updated);
     await DataService.saveSubscribers(updated);
 
@@ -678,6 +700,7 @@ export default function Home() {
           <SubscribersView
             businessName={settings.business_name}
             subscribers={subscribers}
+            paymentHistory={paymentHistory}
             packages={packages}
             collectorFeePerUser={settings.collector_fee_per_user ?? 5000}
             onAddSubscriber={handleAddSubscriber}

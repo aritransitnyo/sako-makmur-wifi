@@ -6,6 +6,23 @@
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
+-- Payment history archive: immutable monthly customer payments
+CREATE TABLE IF NOT EXISTS payment_history (
+    id TEXT PRIMARY KEY,
+    subscriber_id TEXT NOT NULL,
+    subscriber_name TEXT NOT NULL,
+    username_pppoe TEXT,
+    period_key TEXT NOT NULL,
+    paid_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
+    payment_method TEXT NOT NULL CHECK (payment_method IN ('Tunai', 'Transfer Bank')),
+    receipt_number TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    UNIQUE (subscriber_id, period_key)
+);
+CREATE INDEX IF NOT EXISTS idx_payment_history_subscriber ON payment_history(subscriber_id, paid_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payment_history_period ON payment_history(period_key);
+
 -- 1. KONTROL INTEGRITAS DATA: CHECK CONSTRAINT TABEL EXPENSES
 --    Mencegah pencatatan nominal pengeluaran/pemasukan bernilai minus (< 0)
 -- ------------------------------------------------------------------------------
