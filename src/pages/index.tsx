@@ -228,7 +228,8 @@ export default function Home() {
 
     const wasSuspended = targetSub.status === 'suspended';
     const paidAt = new Date().toISOString();
-    const periodKey = paidAt.slice(0, 7);
+    // Payment belongs to the currently open operational period, not merely the calendar month.
+    const periodKey = getActivePeriodInfo(closings).activePeriodKey;
     const payment: PaymentHistory = {
       id: `pay-${targetSub.id}-${periodKey}-${Date.now()}`,
       subscriber_id: targetSub.id,

@@ -85,6 +85,7 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
   const [periodMonth, setPeriodMonth] = useState(fin.activePeriodMonth || 'Oktober 2026');
   const [notes, setNotes] = useState('');
   const [resetPayments, setResetPayments] = useState(true);
+  const canCloseBySchedule = new Date().getDate() >= 25;
 
   if (!isOpen) return null;
 
@@ -104,6 +105,11 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
 
   const handleCreateClosing = (e: React.FormEvent) => {
     e.preventDefault();
+    const today = new Date();
+    if (today.getDate() < 25) {
+      alert(`Tutup buku hanya dapat dilakukan mulai tanggal 25. Periode ${periodMonth} belum bisa ditutup.`);
+      return;
+    }
     if (isAlreadyClosed) {
       alert(`⚠️ Periode ${periodMonth} sudah pernah ditutup buku sebelumnya. Tutup buku tidak dapat diduplikasi.`);
       return;
@@ -523,7 +529,7 @@ export const MonthlyClosingModal: React.FC<MonthlyClosingModalProps> = ({
             {/* Submit */}
             <button
               type="submit"
-              disabled={isAlreadyClosed}
+              disabled={isAlreadyClosed || !canCloseBySchedule}
               className={`w-full py-3 rounded-xl font-black flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all ${
                 isAlreadyClosed
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
