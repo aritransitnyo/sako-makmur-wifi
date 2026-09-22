@@ -127,7 +127,35 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
       return;
     }
 
-    const invoiceHtml = receipt.outerHTML;
+    const invoiceHtml = `
+      <main class="invoice">
+        <header class="invoice-header">
+          <div>
+            <div class="eyebrow">PROGRAM LAYANAN INTERNET</div>
+            <h1>LIMBANGMULIA SEJAHTERA MANDIRI</h1>
+            <p>(LSM NetOS)</p>
+            <p>Bukti Sah Pembayaran Iuran Internet Warga</p>
+          </div>
+          <div class="status">LUNAS</div>
+        </header>
+        <section class="meta">
+          <div><span>Nomor Invoice</span><strong>${receiptNo}</strong></div>
+          <div><span>Tanggal Bayar</span><strong>${formattedDate}</strong></div>
+          <div><span>Periode</span><strong>${currentMonthStr}</strong></div>
+        </section>
+        <section class="customer">
+          <div class="section-label">DITERIMA DARI</div>
+          <h2>${subscriber.full_name}</h2>
+          <p>Username PPPoE: <strong>${subscriber.username_pppoe}</strong></p>
+          ${subscriber.address ? `<p>Alamat: ${subscriber.address}</p>` : ''}
+        </section>
+        <table><thead><tr><th>Deskripsi</th><th>Periode</th><th>Jumlah</th></tr></thead>
+          <tbody><tr><td><strong>${subscriber.package_name || 'Paket Internet'}</strong><small>Internet bulanan</small></td><td>${currentMonthStr}</td><td>${formatRupiah(subscriber.package_price || 200000)}</td></tr></tbody>
+        </table>
+        <section class="summary"><div><span>Metode Pembayaran</span><strong>${paymentMethod}</strong></div><div class="total"><span>Total Dibayar</span><strong>${formatRupiah(subscriber.package_price || 200000)}</strong></div></section>
+        <section class="note"><strong>Pembayaran telah diterima dan diverifikasi.</strong><br/>Terima kasih telah menggunakan layanan Sako Makmur WiFi.</section>
+        <footer><span>Sako Makmur WiFi</span><span>Dokumen resmi pembayaran pelanggan</span></footer>
+      </main>`;
     printWindow.document.open();
     printWindow.document.write(`<!doctype html>
 <html>
@@ -139,6 +167,27 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #fff; color: #111827; }
     body { width: 8.5in; min-height: 13in; font-family: Arial, Helvetica, sans-serif; }
+    .invoice { width: 7.7in; min-height: 11.9in; margin: 0.55in auto; padding: 0.58in; border: 1px solid #dbe3ea; border-radius: 18px; color: #14212b; background: #fff; }
+    .invoice-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #0f766e; padding-bottom:26px; }
+    .eyebrow,.section-label { color:#0f766e; font-size:11px; font-weight:700; letter-spacing:2px; }
+    .invoice h1 { margin:8px 0 5px; font-size:27px; letter-spacing:1px; }
+    .invoice p { margin:5px 0; color:#60707b; font-size:12px; }
+    .status { color:#047857; background:#ecfdf5; border:1px solid #86efac; border-radius:999px; padding:10px 18px; font-weight:800; letter-spacing:1px; }
+    .meta { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; padding:25px 0; border-bottom:1px solid #e5e7eb; }
+    .meta span,.summary span { display:block; color:#6b7280; font-size:11px; margin-bottom:6px; }
+    .meta strong,.summary strong { font-size:13px; }
+    .customer { padding:30px 0 26px; }
+    .customer h2 { margin:8px 0; font-size:21px; }
+    table { width:100%; border-collapse:collapse; margin:10px 0 26px; font-size:12px; }
+    th { text-align:left; color:#6b7280; background:#f8fafc; padding:13px; border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; }
+    td { padding:18px 13px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
+    th:last-child,td:last-child { text-align:right; }
+    td small { display:block; color:#6b7280; margin-top:5px; }
+    .summary { display:flex; justify-content:space-between; align-items:flex-end; padding:18px 0 28px; }
+    .total { text-align:right; }
+    .total strong { display:block; color:#047857; font-size:25px; margin-top:5px; }
+    .note { padding:18px; background:#f0fdfa; border-left:4px solid #0f766e; color:#285e61; font-size:12px; line-height:1.6; }
+    .invoice footer { display:flex; justify-content:space-between; margin-top:80px; padding-top:16px; border-top:1px solid #e5e7eb; color:#83919b; font-size:10px; }
     #lsm-receipt-print {
       width: 7.7in !important;
       height: 12.1in !important;
