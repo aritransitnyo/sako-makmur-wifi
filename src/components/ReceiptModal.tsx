@@ -40,12 +40,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ];
-  const packageLabel = (subscriber.package_price || 200000) === 200000
-    ? 'Paket 5 Mbps'
-    : (subscriber.package_price || 0) === 250000
-      ? 'Paket 8 Mbps'
-      : subscriber.package_name || 'Paket Internet';
-
   const currentMonthStr = paymentPeriod
     ? (() => {
         const [year, month] = paymentPeriod.split('-').map(Number);
@@ -155,10 +149,10 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
           ${subscriber.address ? `<p>Alamat: ${subscriber.address}</p>` : ''}
         </section>
         <table><thead><tr><th>Deskripsi</th><th>Periode</th><th>Jumlah</th></tr></thead>
-          <tbody><tr><td><strong>${packageLabel}</strong><small>Internet bulanan</small></td><td>${currentMonthStr}</td><td>${formatRupiah(subscriber.package_price || 200000)}</td></tr></tbody>
+          <tbody><tr><td><strong>${subscriber.package_name || 'Paket Internet'}</strong><small>Internet bulanan</small></td><td>${currentMonthStr}</td><td>${formatRupiah(subscriber.package_price || 200000)}</td></tr></tbody>
         </table>
         <section class="summary"><div><span>Metode Pembayaran</span><strong>${paymentMethod}</strong></div><div class="total"><span>Total Dibayar</span><strong>${formatRupiah(subscriber.package_price || 200000)}</strong></div></section>
-        <section class="note"><strong>Pembayaran telah diterima dan diverifikasi.</strong><br/>Terima kasih telah menggunakan layanan Sako Makmur WiFi.</section>
+        <section class="note"><strong>Pembayaran telah diterima dan diverifikasi.</strong><br/>Terima kasih telah menggunakan layanan LIMBANGMULIA SEJAHTERA MANDIRI.</section>
         <footer><span>LSM NetOS</span><span>Dokumen resmi pembayaran pelanggan</span></footer>
       </main>`;
     printWindow.document.open();

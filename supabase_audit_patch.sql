@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS payment_history (
     period_key TEXT NOT NULL,
     paid_at TIMESTAMP WITH TIME ZONE NOT NULL,
     amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
+    package_name TEXT NOT NULL DEFAULT 'Paket Internet',
+    package_price NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (package_price >= 0),
     payment_method TEXT NOT NULL CHECK (payment_method IN ('Tunai', 'Transfer Bank')),
     receipt_number TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),

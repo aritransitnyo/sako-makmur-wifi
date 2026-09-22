@@ -53,6 +53,8 @@ export interface PaymentHistory {
   period_key: string;
   paid_at: string;
   amount: number;
+  package_name: string;
+  package_price: number;
   payment_method: 'Tunai' | 'Transfer Bank';
   receipt_number: string;
   created_at?: string;

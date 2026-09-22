@@ -238,6 +238,8 @@ export default function Home() {
       period_key: periodKey,
       paid_at: paidAt,
       amount: targetSub.package_price || 200000,
+      package_name: targetSub.package_name || 'Paket Internet',
+      package_price: targetSub.package_price || 200000,
       payment_method: method,
       receipt_number: `LSM-${periodKey.replace('-', '')}-${Date.now().toString().slice(-6)}`,
       created_at: paidAt,
