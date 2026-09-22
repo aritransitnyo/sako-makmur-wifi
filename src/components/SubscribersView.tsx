@@ -62,6 +62,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'unpaid' | 'paid' | 'suspended' | 'pending_installation'>('all');
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [paymentHistoryPeriod, setPaymentHistoryPeriod] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscriber | null>(null);
 
@@ -74,7 +75,13 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Kuitansi Modal State
-  const [receiptSub, setReceiptSub] = useState<{ sub: Subscriber; method?: string } | null>(null);
+  const [receiptSub, setReceiptSub] = useState<{
+    sub: Subscriber;
+    method?: string;
+    paymentDate?: string;
+    receiptNumber?: string;
+    paymentPeriod?: string;
+  } | null>(null);
 
   const handlePaymentClick = async (sub: Subscriber, method: 'Tunai' | 'Transfer Bank') => {
     if (isSubmitting || isProcessingPayment) return;
@@ -167,6 +174,10 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   const suspendedSubscribers = subscribers.filter((s) => s.status === 'suspended');
   const pendingInstallationSubscribers = subscribers.filter((s) => s.status === 'pending_installation');
   const terminatedSubscribers = subscribers.filter((s) => s.status === 'terminated');
+  const paymentPeriods = Array.from(new Set(paymentHistory.map((payment) => payment.period_key))).sort().reverse();
+  const visiblePaymentHistory = paymentHistory.filter(
+    (payment) => paymentHistoryPeriod === 'all' || payment.period_key === paymentHistoryPeriod
+  );
   const paidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'paid');
   const unpaidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'unpaid');
 
@@ -394,9 +405,22 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
               <button onClick={() => setShowPaymentHistory(false)} className="p-2 text-slate-400 hover:text-white" title="Tutup">✕</button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[70vh] space-y-2">
+              <select
+                value={paymentHistoryPeriod}
+                onChange={(event) => setPaymentHistoryPeriod(event.target.value)}
+                className="w-full mb-2 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200"
+                aria-label="Filter periode pembayaran"
+              >
+                <option value="all">Semua Periode ({paymentHistory.length})</option>
+                {paymentPeriods.map((period) => (
+                  <option key={period} value={period}>Periode {period} ({paymentHistory.filter((item) => item.period_key === period).length})</option>
+                ))}
+              </select>
               {paymentHistory.length === 0 ? (
                 <p className="text-center text-sm text-slate-500 py-8">Belum ada riwayat pembayaran tersimpan.</p>
-              ) : paymentHistory.map((payment) => (
+              ) : visiblePaymentHistory.length === 0 ? (
+                <p className="text-center text-sm text-slate-500 py-8">Tidak ada pembayaran pada periode ini.</p>
+              ) : visiblePaymentHistory.map((payment) => (
                 <div key={payment.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-slate-100 truncate">{payment.subscriber_name}</p>
@@ -406,6 +430,33 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                   <div className="text-right flex-shrink-0">
                     <p className="text-xs font-black text-emerald-400">{formatRupiah(payment.amount)}</p>
                     <p className="text-[9px] text-slate-500">{payment.receipt_number}</p>
+                    <button
+                      onClick={() => {
+                        const subscriber = subscribers.find((item) => item.id === payment.subscriber_id) || {
+                          id: payment.subscriber_id,
+                          username_pppoe: payment.username_pppoe || '-',
+                          full_name: payment.subscriber_name,
+                          package_id: '',
+                          package_name: payment.amount === 200000 ? 'Paket Up to 5 Mbps' : 'Paket Up to 8 Mbps',
+                          package_price: payment.amount,
+                          address: '',
+                          phone: '',
+                          status: 'active' as const,
+                          due_date: 18,
+                          payment_status: 'paid' as const,
+                        };
+                        setReceiptSub({
+                          sub: subscriber,
+                          method: payment.payment_method,
+                          paymentDate: new Date(payment.paid_at).toLocaleString('id-ID') + ' WIB',
+                          receiptNumber: payment.receipt_number,
+                          paymentPeriod: payment.period_key,
+                        });
+                      }}
+                      className="mt-1 px-2 py-1 rounded-lg bg-cyan-950/70 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold"
+                    >
+                      Bukti Kuitansi
+                    </button>
                   </div>
                 </div>
               ))}
@@ -808,6 +859,9 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         onClose={() => setReceiptSub(null)}
         subscriber={receiptSub?.sub || null}
         paymentMethod={receiptSub?.method || 'Transfer Bank'}
+        paymentDate={receiptSub?.paymentDate}
+        receiptNumber={receiptSub?.receiptNumber}
+        paymentPeriod={receiptSub?.paymentPeriod}
       />
     </div>
   );

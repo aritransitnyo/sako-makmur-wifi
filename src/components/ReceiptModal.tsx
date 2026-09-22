@@ -17,6 +17,8 @@ interface ReceiptModalProps {
   subscriber: Subscriber | null;
   paymentMethod?: string;
   paymentDate?: string;
+  receiptNumber?: string;
+  paymentPeriod?: string;
 }
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({
@@ -25,6 +27,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   subscriber,
   paymentMethod = 'Transfer Bank',
   paymentDate,
+  receiptNumber,
+  paymentPeriod,
 }) => {
   const [copied, setCopied] = useState(false);
   const [sendingWA, setSendingWA] = useState(false);
@@ -36,9 +40,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ];
-  const currentMonthStr = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+  const currentMonthStr = paymentPeriod
+    ? (() => {
+        const [year, month] = paymentPeriod.split('-').map(Number);
+        return monthNames[(month || 1) - 1] ? `${monthNames[(month || 1) - 1]} ${year}` : paymentPeriod;
+      })()
+    : `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-  const receiptNo = `#LSM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${(
+  const receiptNo = receiptNumber || `#LSM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${(
     subscriber.id || '001'
   )
     .replace(/[^a-zA-Z0-9]/g, '')
