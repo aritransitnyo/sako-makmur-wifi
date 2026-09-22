@@ -197,7 +197,7 @@ export default function Home() {
 
   const handleToggleSubscriberStatus = (
     id: string,
-    newStatus: 'active' | 'suspended' | 'terminated'
+    newStatus: 'active' | 'suspended' | 'terminated' | 'pending_installation'
   ) => {
     const targetSub = subscribers.find((s) => s.id === id);
     const updated = subscribers.map((s) =>

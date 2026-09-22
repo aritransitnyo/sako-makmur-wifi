@@ -69,7 +69,7 @@ export interface Subscriber {
   installation_fee?: number; // Biaya Pasang Baru (PSB)
   address: string;
   phone: string;
-  status: 'active' | 'suspended' | 'terminated';
+  status: 'active' | 'suspended' | 'terminated' | 'pending_installation';
   due_date: number; // 1 - 31
   payment_status: 'paid' | 'unpaid';
   payment_method?: 'Tunai' | 'Transfer Bank';

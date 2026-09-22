@@ -23,6 +23,11 @@ CREATE TABLE IF NOT EXISTS payment_history (
 CREATE INDEX IF NOT EXISTS idx_payment_history_subscriber ON payment_history(subscriber_id, paid_at DESC);
 CREATE INDEX IF NOT EXISTS idx_payment_history_period ON payment_history(period_key);
 
+-- Status pending_installation = akun PPPoE sudah disiapkan, tetapi layanan belum terpasang.
+ALTER TABLE subscribers DROP CONSTRAINT IF EXISTS chk_subscribers_status;
+ALTER TABLE subscribers ADD CONSTRAINT chk_subscribers_status
+  CHECK (status IN ('active', 'suspended', 'terminated', 'pending_installation'));
+
 -- 1. KONTROL INTEGRITAS DATA: CHECK CONSTRAINT TABEL EXPENSES
 --    Mencegah pencatatan nominal pengeluaran/pemasukan bernilai minus (< 0)
 -- ------------------------------------------------------------------------------

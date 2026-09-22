@@ -36,7 +36,7 @@ interface SubscribersViewProps {
   collectorFeePerUser?: number;
   onAddSubscriber: (sub: Omit<Subscriber, 'id'>) => void;
   onUpdateSubscriber: (sub: Subscriber) => void;
-  onToggleStatus: (id: string, newStatus: 'active' | 'suspended' | 'terminated') => void;
+  onToggleStatus: (id: string, newStatus: 'active' | 'suspended' | 'terminated' | 'pending_installation') => void;
   onConfirmPayment: (id: string, method: 'Tunai' | 'Transfer Bank') => Promise<void> | void;
   onCancelPayment: (id: string) => Promise<void> | void;
   onDeleteSubscriber: (id: string) => void;
@@ -60,7 +60,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
   onOpenBroadcastModal,
 }) => {
   const [search, setSearch] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'unpaid' | 'paid' | 'suspended'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'unpaid' | 'paid' | 'suspended' | 'pending_installation'>('all');
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingSub, setEditingSub] = useState<Subscriber | null>(null);
@@ -159,11 +159,13 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
     if (filterTab === 'unpaid') return sub.status === 'active' && sub.payment_status === 'unpaid';
     if (filterTab === 'paid') return sub.payment_status === 'paid';
     if (filterTab === 'suspended') return sub.status === 'suspended';
+    if (filterTab === 'pending_installation') return sub.status === 'pending_installation';
     return true;
   });
 
   const activeSubscribers = subscribers.filter((s) => s.status === 'active');
   const suspendedSubscribers = subscribers.filter((s) => s.status === 'suspended');
+  const pendingInstallationSubscribers = subscribers.filter((s) => s.status === 'pending_installation');
   const terminatedSubscribers = subscribers.filter((s) => s.status === 'terminated');
   const paidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'paid');
   const unpaidSubscribers = activeSubscribers.filter((s) => s.payment_status === 'unpaid');
@@ -321,7 +323,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         </div>
 
         {/* Status Tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
           <button
             onClick={() => setFilterTab('all')}
             className={`py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
@@ -361,6 +363,16 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
             }`}
           >
             Isolir ({suspendedSubscribers.length})
+          </button>
+          <button
+            onClick={() => setFilterTab('pending_installation')}
+            className={`py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
+              filterTab === 'pending_installation'
+                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 font-bold'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+            }`}
+          >
+            Belum Pasang ({pendingInstallationSubscribers.length})
           </button>
         </div>
         {suspendedSubscribers.length > 0 && (
@@ -407,6 +419,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
         {filtered.map((sub) => {
           const isActive = sub.status === 'active';
           const isSuspended = sub.status === 'suspended';
+          const isPendingInstallation = sub.status === 'pending_installation';
           const isPaid = sub.payment_status === 'paid';
           const hasPhone = Boolean(sub.phone);
 
@@ -423,6 +436,11 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                     {isSuspended && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border bg-rose-500/15 text-rose-300 border-rose-500/40 flex-shrink-0">
                         ISOLIR
+                      </span>
+                    )}
+                    {isPendingInstallation && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold border bg-blue-500/15 text-blue-300 border-blue-500/40 flex-shrink-0">
+                        BELUM PASANG
                       </span>
                     )}
                     <span
@@ -523,7 +541,7 @@ export const SubscribersView: React.FC<SubscribersViewProps> = ({
                         : 'bg-cyan-950/40 text-cyan-300 border-cyan-800/40 hover:bg-cyan-900/50'
                     }`}
                   >
-                    {isActive ? 'Isolir' : isSuspended ? 'Aktifkan' : 'Aktif'}
+                    {isActive ? 'Isolir' : isSuspended || isPendingInstallation ? 'Aktifkan' : 'Aktif'}
                   </button>
 
                   {/* Edit button */}
