@@ -127,7 +127,7 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
       <style jsx global>{`
         @media print {
           @page {
-            size: 80mm auto;
+            size: 8.5in 13in;
             margin: 0;
           }
 
@@ -157,13 +157,15 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
             top: 0 !important;
             transform: translateX(-50%) !important;
             box-sizing: border-box !important;
-            width: 80mm !important;
-            max-width: 80mm !important;
-            margin: 0 !important;
-            padding: 4mm !important;
-            max-height: none !important;
-            height: auto !important;
-            zoom: 0.72 !important;
+            box-sizing: border-box !important;
+            width: 7.7in !important;
+            max-width: 7.7in !important;
+            min-height: 12.2in !important;
+            margin: 0 auto !important;
+            padding: 0.55in !important;
+            max-height: 12.2in !important;
+            height: 12.2in !important;
+            zoom: 1 !important;
             overflow: hidden !important;
             background: #ffffff !important;
             color: #000000 !important;
