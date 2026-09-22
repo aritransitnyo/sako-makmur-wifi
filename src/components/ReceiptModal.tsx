@@ -126,6 +126,11 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
       {/* Isolated Print Styles: Only #lsm-receipt-print is printed */}
       <style jsx global>{`
         @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+
           html, body {
             background: #ffffff !important;
             color: #000000 !important;
@@ -149,17 +154,27 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
           #lsm-receipt-print {
             position: absolute !important;
             left: 50% !important;
-            top: 20px !important;
+            top: 0 !important;
             transform: translateX(-50%) !important;
-            width: 100% !important;
+            box-sizing: border-box !important;
+            width: 92% !important;
             max-width: 440px !important;
-            margin: 0 auto !important;
-            padding: 24px !important;
+            margin: 0 !important;
+            padding: 18px !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
             background: #ffffff !important;
             color: #000000 !important;
             border: 1px dashed #222222 !important;
             border-radius: 6px !important;
             box-shadow: none !important;
+            page-break-inside: avoid !important;
+          }
+
+          #lsm-receipt-print,
+          #lsm-receipt-print * {
+            page-break-before: avoid !important;
+            page-break-after: avoid !important;
             page-break-inside: avoid !important;
           }
 
