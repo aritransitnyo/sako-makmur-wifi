@@ -118,7 +118,64 @@ _LSM NetOS Gateway • Layanan Komunitas Desa_`;
   };
 
   const handlePrint = () => {
-    window.print();
+    const receipt = document.getElementById('lsm-receipt-print');
+    if (!receipt) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=1200');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const invoiceHtml = receipt.outerHTML;
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${receiptNo.replace('#', 'Invoice-')}</title>
+  <style>
+    @page { size: 8.5in 13in; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #111827; }
+    body { width: 8.5in; min-height: 13in; font-family: Arial, Helvetica, sans-serif; }
+    #lsm-receipt-print {
+      width: 7.7in !important;
+      height: 12.1in !important;
+      margin: 0.45in auto !important;
+      padding: 0.42in !important;
+      overflow: hidden !important;
+      background: #fff !important;
+      color: #111827 !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 10px !important;
+      box-shadow: none !important;
+      font-size: 12px !important;
+      line-height: 1.3 !important;
+    }
+    #lsm-receipt-print * { color: #111827 !important; text-shadow: none !important; }
+    #lsm-receipt-print .text-cyan-400,
+    #lsm-receipt-print .text-emerald-400,
+    #lsm-receipt-print .text-emerald-300 { color: #047857 !important; }
+    #lsm-receipt-print .text-cyan-300 { color: #0369a1 !important; }
+    #lsm-receipt-print .bg-emerald-950\\/40 { background: #ecfdf5 !important; }
+    #lsm-receipt-print .border-emerald-500\\/40 { border-color: #86efac !important; }
+    #lsm-receipt-print .bg-slate-900\\/80,
+    #lsm-receipt-print .bg-slate-950 { background: #f8fafc !important; }
+    #lsm-receipt-print .border-slate-800, #lsm-receipt-print .border-slate-800\\/80 { border-color: #e5e7eb !important; }
+    #lsm-receipt-print .text-slate-400, #lsm-receipt-print .text-slate-500 { color: #6b7280 !important; }
+    #lsm-receipt-print .text-slate-100, #lsm-receipt-print .text-slate-200, #lsm-receipt-print .text-slate-300 { color: #111827 !important; }
+    #lsm-receipt-print > * { break-inside: avoid; page-break-inside: avoid; }
+  </style>
+</head>
+<body>${invoiceHtml}</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.onafterprint = () => printWindow.close();
+    };
   };
 
   return (
