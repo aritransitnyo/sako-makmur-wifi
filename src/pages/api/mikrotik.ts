@@ -18,8 +18,30 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+/**
+ * Normalize bridge URL to ensure protocol and default port (10887)
+ */
+function normalizeBridgeUrl(raw?: string): string {
+  let urlStr = (raw || 'http://43.173.1.92:10887').trim();
+  if (!urlStr) {
+    urlStr = 'http://43.173.1.92:10887';
+  }
+  if (!/^https?:\/\//i.test(urlStr)) {
+    urlStr = `http://${urlStr}`;
+  }
+  try {
+    const parsed = new URL(urlStr);
+    if (!parsed.port) {
+      parsed.port = '10887';
+    }
+    return parsed.toString();
+  } catch {
+    return 'http://43.173.1.92:10887';
+  }
+}
+
 // Bridge URL for Vercel deployment (VPS HTTP-to-TCP proxy)
-const BRIDGE_URL = process.env.MIKROTIK_BRIDGE_URL || 'http://49.12.82.34:10887';
+const BRIDGE_URL = normalizeBridgeUrl(process.env.MIKROTIK_BRIDGE_URL);
 const BRIDGE_KEY = process.env.MIKROTIK_BRIDGE_KEY || '3oR6TBDJQqTt2iykOysTHBWsAQh69TlbCXT07vndbCE';
 
 // Check if we should use direct TCP or HTTP bridge
