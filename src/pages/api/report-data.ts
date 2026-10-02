@@ -118,10 +118,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
     const cumulativeReserveFund = Math.max(0, totalReserveAllocated - reserveFundSpent);
 
-    // Active period OPEX
-    const opexExpenses = expenses.filter(
-      (e: any) => e.type !== 'income' && (!e.fund_source || e.fund_source === 'Kas Operasional')
-    );
+    // Active period OPEX (exclude archived expenses from closed periods like September 2026)
+    const opexExpenses = expenses.filter((e: any) => {
+      if (e.type === 'income') return false;
+      if (e.fund_source && e.fund_source !== 'Kas Operasional') return false;
+      if (latestClosing) {
+        const expKey = (e.date || '').slice(0, 7);
+        if (expKey && expKey <= latestClosing.period_key) return false;
+        if (e.created_at && latestClosing.closed_at && e.created_at <= latestClosing.closed_at) return false;
+      }
+      return true;
+    });
     const kasOpexTotal = opexExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
     const activeTotalOpex = (opexExpenses.length > 0
