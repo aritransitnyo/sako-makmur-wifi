@@ -186,9 +186,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-2',
@@ -203,9 +201,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-3',
@@ -220,9 +216,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-4',
@@ -237,9 +231,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-5',
@@ -254,9 +246,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-6',
@@ -271,9 +261,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-7',
@@ -288,9 +276,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-8',
@@ -305,9 +291,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-9',
@@ -322,9 +306,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 10,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-10',
@@ -339,9 +321,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-11',
@@ -356,9 +336,7 @@ export const DEFAULT_SUBSCRIBERS: Subscriber[] = [
     phone: '',
     status: 'active',
     due_date: 18,
-    payment_status: 'paid',
-    payment_method: 'Tunai',
-    last_paid_at: new Date().toISOString(),
+    payment_status: 'unpaid',
   },
   {
     id: 'sub-12',
@@ -430,48 +408,48 @@ export const DEFAULT_EXPENSES: ExpenseTransaction[] = [
 
 export const DEFAULT_CLOSINGS: MonthlyClosing[] = [
   {
-    id: 'close-2026-08',
-    period_month: 'Agustus 2026',
-    period_key: '2026-08',
-    closed_at: '2026-08-31T23:59:00.000Z',
+    id: 'close-2026-09',
+    period_month: 'September 2026',
+    period_key: '2026-09',
+    closed_at: '2026-09-20T04:00:44.609+00:00',
     closed_by: 'Tri Wahyono (Managing Owner)',
-    active_subscribers_count: 26,
-    paid_subscribers_count: 26,
-    gross_revenue: 5200000,
-    total_expenses: 2225000,
-    reserve_fund_amount: 520000,
+    active_subscribers_count: 17,
+    paid_subscribers_count: 11,
+    gross_revenue: 2600000,
+    total_expenses: 2015000,
+    reserve_fund_amount: 260000,
     reserve_fund_pct: 10.0,
-    net_profit: 2455000,
+    net_profit: 585000,
     investor_dividends: [
       {
         investor_id: 'inv-1',
         name: 'Tri Wahyono',
         role: 'Managing Owner',
         share_percentage: 20.0,
-        dividend_amount: 491000,
+        dividend_amount: 117000,
         paid_status: 'paid',
-        paid_at: '2026-09-01T10:00:00.000Z',
+        paid_at: '2026-09-20T04:00:44.609+00:00',
       },
       {
         investor_id: 'inv-2',
         name: 'Ahmad Fauzi',
         role: 'Investor',
         share_percentage: 60.0,
-        dividend_amount: 1473000,
+        dividend_amount: 351000,
         paid_status: 'paid',
-        paid_at: '2026-09-01T10:15:00.000Z',
+        paid_at: '2026-09-20T04:00:44.609+00:00',
       },
       {
         investor_id: 'inv-3',
         name: 'Anwar Khadafi Saimona',
         role: 'Investor',
         share_percentage: 20.0,
-        dividend_amount: 491000,
+        dividend_amount: 117000,
         paid_status: 'paid',
-        paid_at: '2026-09-01T10:20:00.000Z',
+        paid_at: '2026-09-20T04:00:44.609+00:00',
       },
     ],
-    notes: 'Tutup buku bulan Agustus 2026. Semua dividen telah ditransfer lunas via Bank ke rekening masing-masing investor.',
+    notes: 'Tutup buku resmi September 2026. Laba bersih Rp 585.000 telah lunas ditransfer ke seluruh investor konsorsium.',
   },
 ];
 
@@ -651,6 +629,7 @@ export class DataService {
     try {
       const { data, error } = await supabase.from('subscribers').select('*').order('created_at', { ascending: false });
       if (!error && data && data.length > 0) {
+        this.setLocal('subscribers', data);
         return { data, isSupabase: true };
       }
     } catch {}
