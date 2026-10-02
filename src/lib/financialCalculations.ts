@@ -26,6 +26,7 @@ export interface FinancialSummary {
   activePeriodKey: string; // e.g. "2026-10"
   activePeriodMonth: string; // e.g. "Oktober 2026"
   isCurrentPeriodClosed: boolean;
+  latestClosing?: MonthlyClosing | null;
   reserveFundPct: number;
   reserveFundAmount: number; // Alokasi bulan berjalan (10%)
   cumulativeReserveFund: number; // Total saldo tabungan cadangan terkini (akumulasi)
@@ -332,6 +333,7 @@ export function calculateFinancials(
     activePeriodKey,
     activePeriodMonth,
     isCurrentPeriodClosed: closings.some((c) => c.period_key === activePeriodKey),
+    latestClosing,
     reserveFundPct,
     reserveFundAmount,
     cumulativeReserveFund,

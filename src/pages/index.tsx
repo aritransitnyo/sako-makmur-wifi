@@ -795,6 +795,7 @@ export default function Home() {
         investors={investors}
         subscribers={subscribers}
         expenses={expenses}
+        closings={closings}
       />
 
       <MikrotikModal

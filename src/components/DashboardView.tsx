@@ -11,6 +11,9 @@ import {
   Edit3,
   X,
   CheckCircle2,
+  Calendar,
+  Archive,
+  ShieldCheck,
 } from 'lucide-react';
 import { MetricCard, formatRupiah } from './MetricCard';
 import { BusinessSettings, Investor, Subscriber, CapexItem, ExpenseTransaction, MonthlyClosing } from '../types';
@@ -110,6 +113,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Banner Status Periode Berjalan vs Tutup Buku Terakhir */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0">
+            <Calendar className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                Periode Berjalan
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-slate-200">
+                {fin.activePeriodMonth}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Siklus: Tagihan terbit tgl 10 • Jatuh tempo tgl 18 • Tutup buku &amp; dividen tgl 25
+            </p>
+          </div>
+        </div>
+
+        {fin.latestClosing && (
+          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-emerald-950/40 border border-emerald-800/40 text-emerald-300 text-xs">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <div>
+              <span className="font-semibold text-emerald-200">
+                Tutup Buku {fin.latestClosing.period_month}:
+              </span>{' '}
+              <span className="text-emerald-400 font-bold">
+                Laba {formatRupiah(fin.latestClosing.net_profit)}
+              </span>{' '}
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-medium">
+                Dividen Lunas Ditransfer ✅
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* KPI 2x2 Grid */}
