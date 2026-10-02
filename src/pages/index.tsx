@@ -57,36 +57,47 @@ export default function Home() {
 
   // Core Data
   const [settings, setSettings] = useState<BusinessSettings>(DEFAULT_SETTINGS);
-  const [investors, setInvestors] = useState<Investor[]>(DEFAULT_INVESTORS);
-  const [packages, setPackages] = useState<PppoePackage[]>(DEFAULT_PACKAGES);
-  const [capexItems, setCapexItems] = useState<CapexItem[]>(DEFAULT_CAPEX);
-  const [subscribers, setSubscribers] = useState<Subscriber[]>(DEFAULT_SUBSCRIBERS);
+  const [investors, setInvestors] = useState<Investor[]>([]);
+  const [packages, setPackages] = useState<PppoePackage[]>([]);
+  const [capexItems, setCapexItems] = useState<CapexItem[]>([]);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseTransaction[]>(DEFAULT_EXPENSES);
-  const [closings, setClosings] = useState<MonthlyClosing[]>(DEFAULT_CLOSINGS);
+  const [expenses, setExpenses] = useState<ExpenseTransaction[]>([]);
+  const [closings, setClosings] = useState<MonthlyClosing[]>([]);
 
-  // Check auth session
+  // Check auth session server-side via HttpOnly cookie
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedAuth = sessionStorage.getItem('smw_auth');
-      if (storedAuth === '1') {
-        setIsAuthenticated(true);
+    const verifySession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+          loadAllData();
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        setIsAuthenticated(false);
+      } finally {
+        setAuthChecked(true);
       }
-      setAuthChecked(true);
-    }
+    };
+
+    verifySession();
   }, []);
 
   const handleAuthenticated = () => {
     setIsAuthenticated(true);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('smw_auth', '1');
-    }
+    loadAllData();
   };
 
-  const handleLockApp = () => {
+  const handleLockApp = async () => {
     setIsAuthenticated(false);
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('smw_auth');
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.warn('Logout error', err);
     }
   };
 
@@ -128,10 +139,6 @@ export default function Home() {
       DataService.triggerCloudSync();
     }
   };
-
-  useEffect(() => {
-    loadAllData();
-  }, []);
 
   // Helper to map package to MikroTik profile
   const getMikrotikProfile = (pkgName?: string, price?: number): string => {
@@ -657,8 +664,7 @@ export default function Home() {
   if (authChecked && !isAuthenticated) {
     return (
       <AuthGate
-        businessName={settings.business_name}
-        correctPin={settings.admin_pin || '140320'}
+        businessName={settings.business_name || 'Sako Makmur WiFi'}
         onAuthenticated={handleAuthenticated}
       />
     );

@@ -17,6 +17,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { isAuthenticated } from '../../lib/auth';
 
 /**
  * Normalize bridge URL to ensure protocol and default port (10887)
@@ -82,13 +83,16 @@ async function bridgeRequest(action: string, params: Record<string, any> = {}): 
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Security Check: Hanya izinkan akses terautentikasi (HttpOnly session cookie atau valid X-API-Key)
+  if (!isAuthenticated(req)) {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Unauthorized: Akses ditolak. Sesi autentikasi tidak valid atau belum login.',
+    });
   }
 
   const action = (req.method === 'GET' ? req.query.action : req.body?.action) as string;

@@ -1,44 +1,69 @@
 import React, { useState } from 'react';
-import { Lock, ShieldCheck, KeyRound, ArrowRight, Wifi } from 'lucide-react';
+import { Lock, ShieldCheck, KeyRound, Wifi, Loader2 } from 'lucide-react';
 
 interface AuthGateProps {
-  businessName: string;
-  correctPin: string;
+  businessName?: string;
   onAuthenticated: () => void;
 }
 
 export const AuthGate: React.FC<AuthGateProps> = ({
-  businessName,
-  correctPin,
+  businessName = 'Sako Makmur WiFi',
   onAuthenticated,
 }) => {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const targetPin = correctPin || '140320';
+  const submitPin = async (candidatePin: string) => {
+    if (candidatePin.length < 4 || loading) return;
+    setLoading(true);
+    setError(false);
+    setErrorMessage('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pin.trim() === targetPin) {
-      setError(false);
-      onAuthenticated();
-    } else {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: candidatePin }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.status === 'success') {
+        onAuthenticated();
+      } else {
+        setError(true);
+        setErrorMessage(data.message || 'PIN Salah. Silakan periksa kembali.');
+        setPin('');
+      }
+    } catch {
       setError(true);
+      setErrorMessage('Koneksi gagal ke server autentikasi.');
       setPin('');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitPin(pin);
+  };
+
   const handleQuickKey = (num: string) => {
+    if (loading) return;
     if (pin.length < 6) {
       const next = pin + num;
       setPin(next);
-      if (next === targetPin) {
-        setTimeout(onAuthenticated, 150);
+      setError(false);
+      if (next.length === 6) {
+        setTimeout(() => submitPin(next), 100);
       }
     }
   };
 
   const handleDeleteKey = () => {
+    if (loading) return;
     setPin(pin.slice(0, -1));
     setError(false);
   };
@@ -56,7 +81,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-100 tracking-tight">
-              {businessName || 'Sako Makmur WiFi'}
+              {businessName}
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               Portal Keamanan Pengelola &amp; Investor
@@ -84,7 +109,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
             {error && (
               <p className="text-xs text-rose-400 font-medium animate-shake">
-                PIN Salah. Silakan periksa kembali.
+                {errorMessage || 'PIN Salah. Silakan periksa kembali.'}
               </p>
             )}
           </div>
@@ -95,30 +120,37 @@ export const AuthGate: React.FC<AuthGateProps> = ({
               <button
                 key={num}
                 type="button"
+                disabled={loading}
                 onClick={() => handleQuickKey(num)}
-                className="h-12 rounded-2xl bg-slate-900/90 border border-slate-800 text-lg font-bold text-slate-100 active:scale-95 active:bg-slate-800 transition-all shadow-md"
+                className="h-12 rounded-2xl bg-slate-900/90 border border-slate-800 text-lg font-bold text-slate-100 active:scale-95 active:bg-slate-800 disabled:opacity-50 transition-all shadow-md"
               >
                 {num}
               </button>
             ))}
             <button
               type="button"
-              onClick={() => setPin('')}
-              className="h-12 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-400 active:scale-95 transition-all"
+              disabled={loading}
+              onClick={() => {
+                setPin('');
+                setError(false);
+              }}
+              className="h-12 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-400 active:scale-95 disabled:opacity-50 transition-all"
             >
               Reset
             </button>
             <button
               type="button"
+              disabled={loading}
               onClick={() => handleQuickKey('0')}
-              className="h-12 rounded-2xl bg-slate-900/90 border border-slate-800 text-lg font-bold text-slate-100 active:scale-95 active:bg-slate-800 transition-all shadow-md"
+              className="h-12 rounded-2xl bg-slate-900/90 border border-slate-800 text-lg font-bold text-slate-100 active:scale-95 active:bg-slate-800 disabled:opacity-50 transition-all shadow-md"
             >
               0
             </button>
             <button
               type="button"
+              disabled={loading}
               onClick={handleDeleteKey}
-              className="h-12 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-400 active:scale-95 transition-all"
+              className="h-12 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-400 active:scale-95 disabled:opacity-50 transition-all"
             >
               ⌫
             </button>
@@ -126,9 +158,18 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
           <button
             type="submit"
-            className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-98 transition-all mt-4"
+            disabled={loading || pin.length < 4}
+            className="w-full py-3 rounded-2xl bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-98 transition-all mt-4"
           >
-            <KeyRound className="w-4 h-4" /> Masuk ke Aplikasi
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" /> Memverifikasi...
+              </>
+            ) : (
+              <>
+                <KeyRound className="w-4 h-4" /> Masuk ke Aplikasi
+              </>
+            )}
           </button>
         </form>
       </div>

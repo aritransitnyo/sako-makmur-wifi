@@ -1,13 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabase } from '../../lib/supabaseClient';
 import { getServerState } from '../../lib/serverState';
+import { isAuthenticated } from '../../lib/auth';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Security Check: Hanya izinkan akses terautentikasi (HttpOnly session cookie atau X-API-Key)
+  if (!isAuthenticated(req)) {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Unauthorized: Akses ditolak. Token API atau sesi tidak valid.',
+    });
   }
 
   try {
@@ -93,10 +99,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const netProfit = Math.max(0, totalOmzet - totalOpex);
 
-    const investorDividends = investors.map((inv: any) => ({
-      ...inv,
-      dividend_amount: Math.round((netProfit * Number(inv.share_percentage)) / 100),
-    }));
+    const investorDividends = investors.map((inv: any) => {
+      // Masking rekening bank
+      const rawAcc = String(inv.bank_account || '');
+      const maskedAcc = rawAcc.length > 6 
+        ? `${rawAcc.slice(0, 4)}****${rawAcc.slice(-2)}` 
+        : rawAcc;
+
+      return {
+        ...inv,
+        bank_account: maskedAcc,
+        dividend_amount: Math.round((netProfit * Number(inv.share_percentage)) / 100),
+      };
+    });
 
     const totalModal = investors.reduce((sum: number, i: any) => sum + Number(i.capital_invested), 0);
     const totalCapexSpent = capex.reduce((sum: number, c: any) => sum + Number(c.total_price), 0);
